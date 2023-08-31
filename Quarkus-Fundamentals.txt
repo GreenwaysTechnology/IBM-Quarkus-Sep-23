@@ -1,0 +1,516 @@
+			     Quarkus
+....................................................................................
+
+What is Quarkus?
+
+  Quarkus is java or JEE frame work and platform to build "modern cloud native" or "container native" or desktop "native java applications".
+
+What is native?
+  native is nothing but operating system.
+
+cloud native : the cloud operating system
+container native: The container's os like docker(linux)
+desktop native: desktop operating system like linux,windows,mac
+
+How java apps are running?
+   java apps are running on JVM
+
+Why java was created?
+  Java was created to build platform independant apps
+  Java achives platform indepandent via "JVM".
+
+Without JVM can we run java apps?
+
+  Yes without jvm generally we cant run java apps
+but
+Now a days without jvm also you can run java apps- do you know how?
+     "Native"
+
+How to turn jvm based apps into native apps?
+  
+   The technology we have called "GraalVM and HotSpot".
+
+Why jvm based technology is not suitable now days?
+
+Now days, we deploy apps on the cloud , containers where we need application start up very fast,less memory foot print.
+
+in order to build apps to target cloud,containers to imporve performance we need mordern tech stack - GraalVM.
+
+Java Runtime compiler:
+Interpreter --- JIT
+ |               |
+.class into native
+
+JIT
+  ->C1 - Client - COREJAVA
+  ->C2 - Server - J2EE
+C1-->C2 =>
+   ->Written in c++
+
+JAVA 9 
+  JEP-JDK enchancement proposal
+
+JDK Features
+  (JIT) compiler features
+C1-->C2 => ?
+
+C1--->JVMCI -- says any body can write compiler not in c/c++ rather java itself.
+
+C1--->JAVA Compiler
+
+C1 ---GRAAL compiler------ GrallVM {native image,turfle framework}
+
+GraalVM is extension of "Graal compiler" which was introduced in java 9 onwards.
+
+GraalVM is just platform/tool to convert java apps into native binary apps.
+
+Graal VM supports many other lanuages
+ js,python,Ruby, R,WASM
+
+
+Java Apps Running env
+.....................
+
+1. Bare Metal desktop | Server
+    os + JVM - windows + jvm 
+2. Virtual Machine Env 
+     where we can have more os - on that os we can have JVM...
+3. Containers - Docker
+     Where we can have light weight vm on which we can run java apps
+     still we require JVM.
+4. Cloud
+      Where we can have os , vm or containers - still require JVM 
+
+
+You can run "Quarkus" apps 
+   in two mode
+
+=> JVM Mode -  Legacy
+=> Native Mode - Modern
+     =>Bare Metal Desktop - os can be any thing
+     =>Container Native 
+     =>Cloud Native 
+
+.....................................................................................
+				Java Standards
+.....................................................................................
+Sun Micro systems setup a body/commeete in order to standarize the java technology.
+  -JCP
+
+What is JCP ?
+ Java Community Process is non profitable organization whoes responsability is to standardize the java technology (java echo system).
+
+What is JEP?
+ JDK Enchament Proposal, Oracle own body to enchance the features of java
+ The JDK Enhancement Proposal (or JEP) is a process drafted by Oracle Corporation for collecting proposals for enhancements to the Java Development Kit and OpenJDK.
+
+
+
+JSR-Java Specifcation Request.
+
+Every JSR has unique no - JSR-223
+
+Java Technology Classification
+
+1.JSE
+2.JEE
+3.JME
+
+1.JSE - Java Standard Edition
+  -Java language Spec
+  -Java VM Spec
+
+
+2.JEE - Java Enterise Edition
+ The Java Enterprise Edition offers APIs and tools for developing multitier enterprise applications.
+
+ -Application Development Specs
+    JPA Spec  - Vendor netural ORM Solutions
+    JSON Binding - JSON-B  
+    Java Servlet 
+    JAX-RS - Building Resfull API
+    JAX-WS - Building xml based webservices -SOAP Webservices
+    Bean Validation
+    JTA  - Java Transaction API
+ -Container Specs 
+    Run time for java ee apps- websphere,weblogic....jboss
+
+3.JME - Java Micro Edition
+   For building Device Apps , Mobile Development.
+.....................................................................................
+		 JEE Specification and implementations
+
+Why JEE Spec failed In Modern Computing?
+
+     JEE Spec was developed to build traditional "Monolothic distributed,transactional, secure Applications".
+
+
+How to build Micro services using java technology / on jvm?
+	
+=>Spring Team introduced an implementation under the project called "Spring Cloud"
+  to build Microservices using java.
+
+
+What was problem Spring faced?
+  Spring introduced project which is not standardized by community like JCP.Which was propierty of Spring team.
+
+What is the problem ?
+  "Vendor lock"
+  if any any new feature comes, we have to wait until spring team releases.
+
+Spring was using "Netflix OSS" components in the begining, later Netflix stopped 
+suport on many components,deprecated.
+    "Failure of spring cloud projects started failing in the microservices develomement made java community very difficult."
+
+ IBM,RedHat,Oracle,Microsoft started thinking how to get out of "Vendor" lock based micro service development in java echo system.
+			
+                             Birth of One Spec
+			    "Micro Profile Spec"
+
+
+.....................................................................................
+	    What if i want to build standard based microservices based On JEE?
+
+                       "MicroProfile Specfication"
+
+  Micro Profile addresses the need for enterprise "java microservices"
+
+  It is set of secifications for handling microservices design patterns. 
+
+MicroProfile enables JEE Developers to leverage their existing skill set while shifiting their focus from traditional monolithic applications to Micro Services
+
+				JEE
+				 |
+			   Micro Profile
+				 |
+		     Microservice patterns and principles
+				  
+....................................................................................
+
+
+			Micro Profile Specifcation
+				|
+       ------------------------------------------------------------
+       |     |               |    |
+    Quarkus  openliberty   TomEE  Payara etc....
+				
+Implmentations:
+
+What is Quarkus?
+  Quarkus is the reference implementation of "JEE/MicroProfile Spec" framework.
+
+
+Why Quarkus?
+
+=> Quarkus is standard based(JEE/MicroProfile)
+=> Quarkus is cloud/container/desktop native ready technology powered by graalvm
+=> Quarkus is based on Non Blocking Architecture via Vert.x
+=> Quarkus is Reactive Framework by default via Mutiny
+
+MicroProfile Specs:
+
+1.JAX-RS - To create HTTP based Microservices-
+2.CDI - Context Dependency Injection - DI - Beans
+3.JSON-B
+4.Configuration
+5.Falut Management
+6.Health
+7.Mertics
+etc....
+....................................................................................
+			MicroProfile Implmentation inside Quarkus
+..................................................................................
+
+Quarkus Architecture with respect specification
+
+
+			         QuarkusApp
+				    |
+	  		    Quarkus Api/Modules
+				   |
+			    ---------------------------------
+		            |       |     |       |          |
+			   
+			 SmallRye Vertx  RestEasy Hibernate  Mutiny
+			   |
+                       MicroProfile Spec
+                             +
+                            JEE 
+
+
+SmallRye:
+  It is the direct  reference implementation of MicroProfile Spec.
+  Quarkus extends SmallRye for building micro servics ,Native Applications.
+
+Ecplise Vert.x:
+  Quarkus web apps are deployed on the top of "Vert.X Engine" which is eq to tomcat.
+  We never use tomcat like blocking containers.
+  Vertx modules(apis) also can be used inside Quarkus apps.
+
+RestEasy:
+	RestEasy is framework used to build  RESTful Web Services  based on JEE
+ JAX-RS Spec.
+        RestEasy has been tailered to match modern microservices.
+
+Hibernate:
+      It is ORM framework used inside Quarkus to implement JPA based 
+
+Mutiny:
+    It is reactive lib used inside Quarks to enable non blocking,async reactive programming.
+
+Quarkus Features:
+
+1.Implements MicroProfile specification via smallRye project
+2.Quarkus implements Reactive Stack via smallRye Muntiny
+3.Quarkus implements non blocking architecture via Vert.x Engine
+4.Quarkus supports Kubernets,docker ready images
+5.Quarkus supports native apps via GraalVM
+     -Mandrel: A specialized distribution of GraalVM for Quarkus
+6.Quarkus supports hot reloading
+..................................................................................
+				Quarkus Apps
+
+Quarkus apps are microservices , so we can create microservices in many ways.
+
+Every Micro services are based on API.
+
+API Technology:
+................
+1.REST API
+2.GraphQL API
+3.Grpc API
+
+In Quarkus we can design REST API,GRAPHQL API,Grpc API.
+
+
+Http Based Microservice-REST Full Arch:
+
+=>How to create REST API?
+=>Depedency Injection -  CDI
+=>ORM using JPA With Hibernate
+
+Quarkus Apps can be 
+
+ =>Reactive
+	Means by default is non blocking 
+ =>Non Reactive
+        Means by default is blocking 
+
+Quarkus is collection many projects - modules
+
+Modules:
+1.core
+2.web
+3.data
+4.messaging
+5.reactive
+6.cdi
+etc...
+....................................................................................
+
+
+....................................................................................
+				Quarkus Setup
+....................................................................................
+
+Setup : software dependency:
+
+JDK 11 or JDK 17
+  => You can install either Oracle JDK 11 or JDK 17 or Open JDK 11 or JDK 17
+Maven =>Optional dependency
+IDE : Intellij Idea Community edition.
+Docker and kubernets for windows
+Project setup patterns:
+ Quarkus apps can be setup many ways.
+
+1.Quarkus CLI
+2.Maven 
+3.on line Templates -  https://code.quarkus.io/
+
+
+JBang:
+  Tool need to be installed first , through which we can install Quarkus cli
+
+Windows:
+ 1.powershell or wsl or bash shell
+
+Step : 1 : install jbang build tool via windows powershell with admin access
+
+iex "& { $(iwr https://ps.jbang.dev) } trust add https://repo1.maven.org/maven2/io/quarkus/quarkus-cli/"
+iex "& { $(iwr https://ps.jbang.dev) } app install --fresh --force quarkus@quarkusio"
+
+
+Step 2: Test Quarkus cli
+
+quarkus --help
+
+Usage: quarkus [-ehv] [--refresh] [--verbose] [--config=CONFIG]
+               [-D=<String=String>]... [COMMAND]
+Options:
+      --refresh         Refresh the local Quarkus extension registry cache
+      --config=CONFIG   Configuration file
+  -h, --help            Display this help message.
+  -v, --version         Print CLI version information and exit.
+  -e, --errors          Print more context on errors and exceptions.
+      --verbose         Verbose mode.
+  -D=<String=String>    Java properties
+
+Commands:
+  create                  Create a new project.
+    app                   Create a Quarkus application project.
+    cli                   Create a Quarkus command-line project.
+    extension             Create a Quarkus extension project
+  build                   Build the current project.
+  dev                     Run the current project in dev (live coding) mode.
+  run                     Run application.
+  test                    Run the current project in continuous testing mode.
+  extension, ext          Configure extensions of an existing project.
+    list, ls              List platforms and extensions.
+    categories, cat       List extension categories.
+    add                   Add extension(s) to this project.
+    remove, rm            Remove extension(s) from this project.
+  image                   Build or push project container image.
+    build                 Build a container image.
+      docker              Build a container image using Docker.
+      buildpack           Build a container image using Buildpack.
+      jib                 Build a container image using Jib.
+      openshift           Build a container image using Openshift.
+    push                  Push a container image.
+  deploy                  Deploy application.
+    kubernetes            Perform the deploy action on kubernetes.
+    openshift             Perform the deploy action on openshift.
+    knative               Perform the deploy action on knative.
+    kind                  Perform the deploy action on kind.
+    minikube              Perform the deploy action on minikube.
+  registry                Configure Quarkus registry client
+    list                  List enabled Quarkus registries
+    add                   Add a Quarkus extension registry
+    remove                Remove a Quarkus extension registry
+  info                    Display project information and verify versions
+                            health (platform and extensions).
+  update, up, upgrade     Suggest recommended project updates with the
+                            possibility to apply them.
+  version                 Display CLI version information.
+  plugin, plug            Configure plugins of the Quarkus CLI.
+    list, ls              List CLI plugins.
+    add                   Add plugin(s) to the Quarkus CLI.
+    remove                Remove plugin(s) to the Quarkus CLI.
+    sync                  Sync (discover / purge) CLI Plugins.
+  completion              bash/zsh completion:  source <(quarkus completion)
+
+Step 3: Create Project using quarkus cli tool
+
+ quarkus create app code-with-quarkus-cli
+
+Looking for the newly published extensions in registry.quarkus.io
+-----------
+
+applying codestarts...
+>> java
+>> maven
+>> quarkus
+>> config-properties
+>> dockerfiles
+>> maven-wrapper
+>> resteasy-reactive-codestart
+
+-----------
+[SUCCESS] quarkus project has been successfully generated in:
+--> E:\session\ibm\2023\jan\QuarkusSession\code-with-quarkus-cli
+-----------
+Navigate into this directory and get started: quarkus dev
+
+Lanuch the project in IDE.
+
+1.IntelliJ idea
+2.VS Code
+
+Step 3: 
+
+How to run Quarkus Project?
+
+   Start running quarkus dev server
+
+3.1.Using Quarkus command
+
+> quarkus dev
+
+we never use tomcat like third party servers.
+
+How to deploy app?
+ Quarkus uses a technology "Vert.x"(toolkit) which offers a web container.
+
+In Vertx we create our own webservers,we deploy on top of that - NonBlocking Webservers.
+....................................................................................				  How to create Quarkus Project using Maven
+....................................................................................
+
+Step 1: Make sure maven has been installed
+ https://maven.apache.org/download.cgi
+
+Step 2:
+mvn io.quarkus.platform:quarkus-maven-plugin:3.3.1:create \
+    -DprojectGroupId=org.acme \
+    -DprojectArtifactId=code-with-quarkus-maven \
+    -Dextensions='resteasy-reactive'
+
+
+Step 3 :
+ 
+3.1.2. via MVN -Running the application in dev mode
+
+./mvnw compile quarkus:dev -  bash shell
+or
+mvnw compile quarkus:dev - normal command
+or
+mvn compile quarkus:dev - via installed mvn command
+......................................................................................................................................................................
+			 How to create project via code.quarkus.io
+...................................................................................
+https://code.quarkus.io/?a=myquarkusgradleapp&b=GRADLE&e=resteasy-reactive
+...................................................................................
+				Quarkus Runtime tools options
+
+The following commands are currently available:
+
+== Continuous Testing
+
+[r] - Resume testing
+[o] - Toggle test output (disabled)
+
+== Exceptions
+
+[x] - Opens last exception in IDE (None)
+
+== HTTP
+
+[w] - Open the application in a browser
+[d] - Open the Dev UI in a browser
+
+== System
+
+[s] - Force restart
+[i] - Toggle instrumentation based reload (disabled)
+[l] - Toggle live reload (enabled)
+[j] - Toggle log levels (INFO)
+[h] - Shows this help
+[:] - Enters terminal mode
+[q] - Quits the application
+....................................................................................
+			  Hot reloading
+....................................................................................
+
+Painfull process in regular development is change code,save,compile,redeloy-
+Quarkus offers hot reloading feature
+  Just write code, and save
+    Quarkus takes care of compilation,building,redloyment automatically.
+.....................................................................................
+
+
+
+
+
+
+
+
+
+

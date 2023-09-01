@@ -1,0 +1,377 @@
+				Microservices
+.....................................................................................
+What are microservices?
+
+
+Microservices - also known as the microservice architecture - is an architectural style that structures an application as a collection of services that are:
+
+Independently deployable
+Loosely coupled
+Organized around business capabilities
+Owned by a small team
+The microservice architecture enables an organization to deliver large, complex applications rapidly, frequently, reliably and sustainably - a necessity for competing and winning in today’s world.
+
+Let’s look at why its important to deliver software rapidly, frequently, reliably and sustainably.
+
+Before MicroServices: 
+ Monolothic ; single development,deployment.....
+
+Microservices are collection of many design patterns.
+
+
+....................................................................................
+			 Micro services implementation
+.....................................................................................
+Microservices just archtecture, we can implement any language,any framework.
+
+Java implementation:
+1.Spring cloud
+2.Quarkus
+3.Vertx
+etc....
+.....................................................................................
+.....................................................................................
+			Quarkus as Microservice implmentation
+.....................................................................................
+Quarkus is framework which implements the most of the microservice design patterns
+via Microprofile specification.
+
+Micro Profile specification is  extension of "Microservice" design patterns.
+
+Domain Modeling
+
+ProductCatelog Management
+Inventory Management
+OrderManagement
+DeliveryManagement
+
+Application Architecture
+
+ProductCataglog
+  ->Service
+
+What is service?
+
+Service is nothing offering. Service means which offers something.
+Service offers some biz functionality in applications
+Service represents a domain like order - Order service,PaymentService
+
+How to implement service?
+
+=>Service is program
+=>Service is single or multiple objects
+=>Service Object which has apis
+=>Service API's Expose some biz functionality
+=>Service API may receive and return data to the callers
+=>Caller could any other program which means any client apis like browsers,mobile   apps or even other microservices(Services)
+
+Service API Design:
+...................
+
+1.WebService
+   =>SOAP service =>Not in Use
+   =>RestFull Webservice
+       =>GraphQL API
+2.RPC 
+   =>TCP services
+   =>Grpc Services
+..................................................................................
+..................................................................................
+			RestFull WebService Implementation
+..................................................................................
+         	  Microservice-HTTP Based Microserivce
+  	 	  RESTFull Web Service using Jax-rs Spec
+		      using RESTEasy Framework
+.....................................................................................
+
+RESTEasy:
+  RESTEasy is a JBoss / Red Hat project that provides various frameworks to help you build RESTful Web Services and RESTful Java applications. It is an implementation of the Jakarta RESTful Web Services, an Eclipse Foundation specification that provides a Java API for RESTful Web Services over the HTTP protocol.
+
+Moreover, RESTEasy also implements the MicroProfile REST Client specification API
+
+Quarkus team uses RESTEasy framework for building MicroService's REST API Design.
+
+Traditional RESTEasy apps are deployed on "Jboss,Apach Tomcat" like web containers.
+
+..................................................................................
+	.....................................................................................
+		 Blocking and Non blocking IO - Network Programming
+...................................................................................
+Web Servers:
+
+C10k:
+  How improve web server to handle more no of connections with limited resources.
+
+Quarkus is sitting on Vertx engine, Vertx sits on Netty Engine, Netty at core uses NIO , NIO uses os "epoll or kqueue or IOCP" Of os wrappers.
+
+Vertx Takes of care thread Managment?
+  Vertx provides per cpu 2 threads
+
+if you have 12 core cpu=> 12*2=24 Threads => Event loop threads...
+
+.....................................................................................
+			Quarkus apps enable NonBlocking arch by default....
+.....................................................................................
+			 Reactive Programming + Non Blockig
+....................................................................................
+What is Reactive Programming?
+
+ It is programming model which has been on the top of various industry standard design patterns and pricinciples to optimize the building distributed apps(micro service)
+
+Why Reactive Programming?
+
+1. It must react to its users (responsive).
+2. It must react to failure and stay available (resilient).
+3. It must react to variable load conditions (elastic).
+4. It must react to inputs (message-driven).
+
+Reactive Programming and its design patterns  and principles?
+
+1.NonBlocking Arch , Async
+2.Observer pattern 
+     -Core design pattern for building event driven arch
+ Publisher publishes events  - data,error,complete
+ Subscriber subscribe events - success,error,complete
+3.iterator pattern
+   Pull data - tradtional iterator
+   Reactive Pull - Push
+4.functional programming style : from imperative to declarative
+   -hof - higher order function
+   -pure function and immutablity = declarative, programming  - concurrency
+
+Resources:
+https://reactivex.io/intro.html
+https://www.reactivemanifesto.org/
+...................................................................................
+		....................................................................................  
+		     Standards of Reactive Programming
+....................................................................................
+
+Standards define how to build efficient distributed system using reactive principles
+https://www.reactivemanifesto.org/
+
+Reactive Streams
+   It is built for java.
+   Provides spec and apis how to handle back pressure in non blocking message work    flows.
+   It is common/unified api for many implementators
+https://www.reactive-streams.org/
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+
+Reactive Programming implemenation:
+...................................
+
+Reactive programming concepts are language independent.
+
+Java Implmentation:
+...................
+1.Rxjava
+2.Project Reactor -  used by Spring Framework by default.
+3.SmallRye Muntiny - Red hat...
+
+
+Mutiny was built by Red hat team
+Mutiny first integrated with Quarkus, later with Vertx.
+Mutiny is reactive stream certified
+Mutiny is the perfect companion to tame the async nature of apps with non blocking io.
+....................................................................................
+
+Reactive Implementation:
+
+Steps: 
+
+1.Create standalone Mutiny java maven project
+
+....................................................................................
+			 Core Concepts of Muntiny
+....................................................................................
+
+Publisher:
+  Object - Provider of data 
+  Who publish events
+Subscriber:
+  Object - Receiver of data
+  Who listens for events
+Subscription -
+   Object who conects Publisher and Subscriber in back end.
+Operators 
+   Are apis provided to process "stream of data"
+
+
+Events:
+1.onItem -  onData - -> data event published by publisher when ever the data is available
+2.onFailure - onError - error event published by publisher when ever the error occurred.
+3.onComplete -  No more data /error published by publisher...
+
+
+Muntiny Publishers Types:
+
+1.Uni 
+  Emit o or 1 item
+2.Multi 
+   1..to Many items - Stream
+
+Steps:
+1.create Publisher
+2.emits data or error events
+3.subscribe for data or error events.
+
+Data processing 
+1.create Publisher
+2.emits data or error events
+3.Process events(data)
+4.subscribe for data or error events.
+
+
+
+How to stream data events?
+
+package com.ibm.reactive;
+
+import io.smallrye.mutiny.Uni;
+
+public class HelloMutinyUni {
+    public static void main(String[] args) {
+        //Create Uni Publisher
+        Uni.createFrom()
+                .item("Hello Mutiny") //publisher
+                .subscribe()//subscriber
+                .with(item->System.out.println(item));
+
+
+    }
+}
+
+How to stream error events?
+package com.ibm.reactive;
+
+import io.smallrye.mutiny.Uni;
+
+public class HelloUniError {
+    public static void main(String[] args) {
+        Uni.createFrom()
+                .failure(new RuntimeException("Something went wrong"))
+                .subscribe().with(item -> {
+                    System.out.println(item);
+                }, err -> {
+                    System.out.println(err);
+                });
+    }
+}
+
+How to process data ? Uni pipelines
+
+package com.ibm.reactive;
+
+import io.smallrye.mutiny.Uni;
+
+public class UniPipeLines {
+    public static void main(String[] args) {
+        //transformation,filtering,accumulating etc....
+        Uni.createFrom()
+                .item("Hello")
+                .onItem().transform(item -> {
+                    return item + " Subramanian";
+                })
+                .onItem()
+                .transform(item -> item.toUpperCase())
+                .subscribe()
+                .with(item -> System.out.println(item));
+    }
+}
+
+How to create multi items:
+
+package com.ibm.reactive;
+
+import io.smallrye.mutiny.Multi;
+
+public class HelloMulti {
+    public static void main(String[] args) {
+        Multi.createFrom()
+                .items(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+                .subscribe()
+                .with(item -> System.out.println(item));
+
+    }
+}
+
+How to process streams ? Transformations.
+
+package com.ibm.reactive;
+
+import io.smallrye.mutiny.Multi;
+
+public class MultiPipeLine {
+    public static void main(String[] args) {
+        Multi.createFrom()
+                .items(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+                .onItem().transform(item -> item * 2)
+                .onItem().transform(item -> "Value is " + item)
+                .subscribe()
+                .with(item -> System.out.println(item));
+
+    }
+}
+
+Filtering , selection
+package com.ibm.reactive;
+
+import io.smallrye.mutiny.Multi;
+
+public class MultiFilteringPipeLines {
+    public static void main(String[] args) {
+        Multi.createFrom()
+                .items(1, 2,2, 3, 4, 5, 6, 7, 8, 9, 10)
+                .filter(item -> item % 2 == 0)
+                .select().first(2)
+                .select().distinct()
+                .subscribe()
+                .with(item -> System.out.println(item));
+
+    }
+}
+
+How to handle error and how to recover from errors.
+
+package com.ibm.reactive;
+
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
+
+public class ErrorHandling {
+    public static void main(String[] args) {
+        Uni.createFrom()
+                .failure(new RuntimeException("Something went wrong"))
+                .onFailure().recoverWithItem("fallback")
+                .subscribe().with(err-> System.out.println(err));    }
+}
+
+.................................................................................
+			Quarkus Rest Api 
+JAX RS- RestEasy and Reactive:
+
+Quarkus has enbled two libs for RestEasy
+
+Reactive Version
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-resteasy-reactive</artifactId>
+    </dependency>
+
+Non Reactive Version
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-resteasy</artifactId>
+    </dependency>
+
+Recommendation is Reactive version, so that our app is enabled with non blocking...
+.....................................................................................
+
+
+
+
+
+
+
+
+

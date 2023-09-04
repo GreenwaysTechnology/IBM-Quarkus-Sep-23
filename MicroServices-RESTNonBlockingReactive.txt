@@ -366,6 +366,813 @@ Non Reactive Version
 
 Recommendation is Reactive version, so that our app is enabled with non blocking...
 .....................................................................................
+			 REST API development
+
+Quarkus is based on JEE standards and MicroProfile standards
+
+Quarkus rest api based on JAX-RS specification - Jakarta RESTful Web Services.
+
+Quarkus implements RESTEasy Framework which is based on Jakarta WS.
+
+RestEasy is based on Blocking and non blocking arch.
+
+Quarkus by default adds Reactive(nonblocking) dependency.
+
+  <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-resteasy-reactive</artifactId>
+    </dependency>
+
+RESTEasy Fundamentals:
+
+ RESTEasy is a JBoss / Red Hat project that provides various frameworks to help you build RESTful Web Services and RESTful Java applications. It is an implementation of the Jakarta RESTful Web Services, an Eclipse Foundation specification that provides a Java API for RESTful Web Services over the HTTP protocol.
+Moreover, RESTEasy also implements the MicroProfile REST Client specification API.
+
+Resources:
+  Domain model which exposes api which  are accessed by clients using urls.
+
+CustomerResource,ProductResource,PaymentResource
+
+RESTEasy is annotation driven.
+
+@Path
+@GET
+@POST
+@PUT
+@DELETE
+
+Simple Resource:
+package com.ibm.rest;
+
+import jakarta.ws.rs.*;
+
+@Path("users")
+public class UserResource {
+    //apis
+    @GET
+    public String getUsers(){
+        return "Users";
+    }
+    @POST
+    public String create(){
+        return "User Create";
+    }
+    @PUT
+    public String update(){
+        return "User update";
+    }
+    @DELETE
+    public String remove(){
+        return  "User Remove";
+    }
+}
+.....................................................................................
+			Passing data to the REST API
+
+Data can be passed to the end point
+
+1.through url - path parameter,query parameters,matrix parameters
+   data passed
+2.Through body(payload)
+  
+Matrix Parameters: Passing more than one parameter.
+....................................................................................
+				Parameters
+
+1.Path Parameter
+2.Query Parameter
+3.Matrix Paraemeter
+4.Form parameters
+
+1.Path Parameters
+
+ @Path("/{id}")
+ @PathParam("id") Integer id
+package com.ibm.rest;
+
+package com.ibm.rest;
+
+import jakarta.ws.rs.*;
+
+@Path("users")
+public class UserResource {
+    //apis
+    @GET
+    public String getUsers(){
+        return "Users";
+    }
+
+    @Path("/{id}")
+    @GET
+    public String findUserById(@PathParam("id") String id ) {
+        return  "User By Id  " + id ;
+    }
+
+    @POST
+    public String create(){
+        return "User Create";
+    }
+    @PUT
+    @Path("/{id}")
+    public String update(@PathParam("id") String id){
+        return "User update";
+    }
+    @DELETE
+    @Path("/{id}")
+    public String remove(@PathParam("id") String id){
+        return  "User Remove " + id;
+    }
+}
+.....................................................................................
+Query Parameters:
+.................
+
+Url 
+ http://www.example.com/api/customers?city=''
+
+package com.ibm.rest;
+
+import jakarta.ws.rs.*;
+
+@Path("users")
+public class UserResource {
+    //apis
+    @GET
+    public String getUsers() {
+        return "Users";
+    }
+
+    @Path("/{id}")
+    @GET
+    public String findUserById(@PathParam("id") String id) {
+        return "User By Id  " + id;
+    }
+
+    //http://localhost:8080/users/contact?mailId=test@gmail.com
+    @GET
+    @Path("/contact")
+    public String findUsersByContact(@QueryParam("mailId") String mailId) {
+        return "User by mail id  " + mailId;
+    }
+
+    @POST
+    public String create() {
+        return "User Create";
+    }
+
+    @PUT
+    @Path("/{id}")
+    public String update(@PathParam("id") String id) {
+        return "User update";
+    }
+
+    @DELETE
+    @Path("/{id}")
+    public String remove(@PathParam("id") String id) {
+        return "User Remove " + id;
+    }
+}
+.....................................................................................
+			Default Values - For Query Parameters
+.....................................................................................
+
+package com.ibm.rest;
+
+import jakarta.ws.rs.*;
+
+@Path("users")
+public class UserResource {
+    //apis
+    @GET
+    public String getUsers() {
+        return "Users";
+    }
+
+    @Path("/{id}")
+    @GET
+    public String findUserById(@PathParam("id")  String id) {
+        return "User By Id  " + id;
+    }
+
+    //http://localhost:8080/users/contact?mailId=test@gmail.com
+    @GET
+    @Path("/contact")
+    public String findUsersByContact(@QueryParam("mailId") @DefaultValue("contact@ibm.com") String mailId ) {
+        return "User by mail id  " + mailId;
+    }
+
+    @POST
+    public String create() {
+        return "User Create";
+    }
+
+    @PUT
+    @Path("/{id}")
+    public String update(@PathParam("id") String id) {
+        return "User update";
+    }
+
+    @DELETE
+    @Path("/{id}")
+    public String remove(@PathParam("id") String id) {
+        return "User Remove " + id;
+    }
+}
+.....................................................................................
+			Matrix Parameters
+.....................................................................................
+
+URL pattern:
+ /api/users/address;city=coimbatore;state=Tamil nadu;country=India
+
+@MatrixParam("city") String city
+@MatrixParam("state") String state
+@MatrixParam("country") String country
+
+http://localhost:8080/users/address;city=coimbatore;state=tamilnadu;country=india
+
+package com.ibm.rest;
+
+import jakarta.ws.rs.*;
+
+@Path("users")
+public class UserResource {
+    //apis
+    @GET
+    public String getUsers() {
+        return "Users";
+    }
+
+    @Path("/{id}")
+    @GET
+    public String findUserById(@PathParam("id")  String id) {
+        return "User By Id  " + id;
+    }
+
+    //http://localhost:8080/users/contact?mailId=test@gmail.com
+    @GET
+    @Path("/contact")
+    public String findUsersByContact(@QueryParam("mailId") @DefaultValue("contact@ibm.com") String mailId ) {
+        return "User by mail id  " + mailId;
+    }
+
+    //
+    @Path("/address")
+    @GET
+    public String getUserByAddress(@MatrixParam("city") String city,@MatrixParam("state") String state,@MatrixParam("country") String country){
+
+         return  city + " " + state + " " + country;
+    }
+
+    @POST
+    public String create() {
+        return "User Create";
+    }
+
+    @PUT
+    @Path("/{id}")
+    public String update(@PathParam("id") String id) {
+        return "User update";
+    }
+
+    @DELETE
+    @Path("/{id}")
+    public String remove(@PathParam("id") String id) {
+        return "User Remove " + id;
+    }
+}
+.....................................................................................
+			Context Object
+....................................................................................
+
+Context Object provides information about "running container" and the application where we have deployed.
+
+How to access context information?
+
+@Context
+
+Context Information:
+ =>URL Information
+ =>Header informations
+ =>Request information
+ =>ServletRequest information
+ =>ServletResponse information
+ =>ServletConfig,Context,SecurityContext information
+
+package com.ibm.rest;
+
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.UriInfo;
+
+@Path("context")
+public class ContextResource {
+
+    @GET
+    @Path("/urls")
+    public String getUrlInfo(@Context UriInfo uriInfo) {
+        System.out.println(uriInfo.getAbsolutePath());
+        System.out.println(uriInfo.getBaseUri());
+        System.out.println(uriInfo.getPathParameters());
+        System.out.println(uriInfo.getRequestUri());
+        return "Url info";
+    }
+
+    @GET
+    @Path("/headers")
+    public String getHeadersInfo(@Context HttpHeaders httpHeaders){
+        return httpHeaders.getRequestHeaders().toString();
+    }
+
+}
+.....................................................................................
+				Responses
+.....................................................................................
+
+What can be response?
+
+JAX-RS api can return any one of the following type.
+
+1.String - Plain/text
+2.Objects/Collections - application/json ,application/xml.
+3.void - No return type - only Status.
+4.Response - Response Object
+5.Reactive Type - Uni or Multi - Non blocking api is enabled.
+
+
+Alread we have discussed String.
+
+Object Type:
+
+How to return Object?
+ Object is converted into json.
+
+package com.ibm.rest.responses;
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+@Path("customers")
+public class CustomerResource {
+
+    @GET
+    public Customer getCustomer(){
+       Customer customer = new Customer(1,"Subramanian","Murugan","Coimbatore");
+       return  customer;
+    }
+}
+
+After running this code, we will get response.
+
+http://localhost:8080/customers
+
+com.ibm.rest.responses.Customer@16a84f68
+
+The response would be "String".
+
+What if i want JSON?
+   By default JSON Will not be returned , if you want json you need to install json parser.
+.....................................................................................
+
+Installing JSON Parser:
+
+ Quarkus adds JSON parser via maven dependency.
+
+.....................................................................................
+			          Extensions
+..................................................................................
+What is extension?
+
+ extension is , project dependency- jar dependency.
+
+By default, you can have extensions, when we new project.
+
+Think of Quarkus extensions are as your project dependencies.
+
+Extensions configure,boot and integrate a framework or technology into your quarkus application.
+
+They also do all of the heavy lifting of providing the right information to Graalvm For application to compile nativly.
+
+How do you manage extensions?
+  Management means - add,removing,list extensions
+
+There are two extensions?
+
+1.via maven or gradle
+2.via cli -quarkus command.
+
+List current extensions in the current project
+
+quarkus ext ls
+
+Looking for the newly published extensions in registry.quarkus.io
+Current Quarkus extensions installed: 
+
+? ArtifactId                                         Extension Name
+? quarkus-resteasy-reactive                          RESTEasy Reactive
+
+How to add extension?
+
+quarkus ext add resteasy-reactive-jackson
+[SUCCESS]  Extension io.quarkus:quarkus-resteasy-reactive-jackson has been installed
+
+quarkus ext ls
+
+Current Quarkus extensions installed: 
+
+? ArtifactId                                         Extension Name
+? quarkus-resteasy-reactive                          RESTEasy Reactive
+? quarkus-resteasy-reactive-jackson                  RESTEasy Reactive Jackson
+
+
+....................................................................................
+			JSON and Collections
+...................................................................................
+
+package com.ibm.rest.responses;
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+import java.util.List;
+
+@Path("customers")
+public class CustomerResource {
+
+    @GET
+    public Customer getCustomer() {
+        Customer customer = new Customer(1, "Subramanian", "Murugan", "Coimbatore");
+        return customer;
+    }
+
+    //List of customers
+    @GET
+    @Path("list")
+    public List<Customer> listCustomer() {
+        return List.of(
+                new Customer(1, "Subramanian", "Murugan", "Coimbatore"),
+                new Customer(2, "Ram", "Murugan", "Coimbatore"),
+                new Customer(3, "Geetha", "Subramanian", "Coimbatore"),
+                new Customer(4, "Shrisha", "Subramanian", "Coimbatore")
+        );
+    }
+}
+....................................................................................
+			Response- Limitations of Object(User,List)
+....................................................................................
+
+When We return Objects/collections ,we cant return other informations as part of Response "Custom headers tokens,urls, resource information".
+
+
+Reponse Object:
+ Object used to send "payload-data" along with meta data(http code, and other informations).
+
+HTTP Status codes:
+
+-> informational response - 100 to 199-1X
+-> success response -  200-299-2X
+-> Redirects  - 300-399 -3X
+-> client errors - 400-499 -4X
+-> server errrors - 500-599 - 5X
+
+Response class:
+ Response is abstract class contains two factory api.
+
+public abstract Object getEntity()
+public abstract int getStatus()
+
+
+Builder Class:
+
+public static ResponseBuilder status(int status)
+public static ResponseBuilder ok()
+public static ResponseBuilder ok(Object entity)
+public static ResponseBuilder created()
+public static ResponseBuilder accepted()
+public static ResponseBuilder noContent()
+
+Response class has been desinged with "Builder" /Command Chain Pattern
+https://docs.jboss.org/resteasy/docs/3.0.9.Final/javadocs/index.html
+
+package com.ibm.rest.responses;
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+
+import java.util.List;
+
+@Path("products")
+public class ProductResource {
+
+    //    @GET
+//    public List<Product> getProducts() {
+//        return List.of(new Product(1, "Phone", 1000, 23.9F));
+//    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getProducts() {
+        List<Product> products = List.of(new Product(1, "Phone", 1000, 23.9F));
+        return Response
+                .ok()  // 200
+                .entity(products) // content
+                .header("productheader", "product") //custom header
+                .build();
+    }
+}
+..................................................................................
+				void
+..................................................................................
+
+Sometimes we dont expect the response from the api. just we need to return only status code.
+
+
+package com.ibm.rest.responses;
+
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+@Path("update")
+public class UpdateResource {
+
+    @GET
+    public void update(){
+        System.out.println("update");
+    }
+}
+
+http://localhost:8080/update - after running this , you will get 204-no content
+....................................................................................
+................................................................................................				Status Codes And RestFul Api Design
+..............................................................................................
+Status Code : 100 to 500
+
+1XX Information Responses
+
+100 Continue
+101 Switching Protocols
+102 Processing
+103 Early Hints
+
+2XX Success
+
+200 OK
+201 Created
+202 Accepted
+203 Non-Authoritative Information
+204 No Content
+205 Reset Content
+206 Partial Content
+207 Multi-Status
+208 Already Reported
+226 IM Used
+
+3XX Redirection
+300 Multiple Choices
+301 Moved Permanently
+302 Found
+303 See Other
+304 Not Modified
+305 Use Proxy
+306 Switch Proxy
+307 Temporary Redirect
+308 Permanent Redirect
+
+4XX Client errors
+
+400 Bad Request
+401 Unauthorized
+402 Payment Required
+403 Forbidden
+404 Not Found
+405 Method Not Allowed
+406 Not Acceptable
+407 Proxy Authentication Required
+408 Request Timeout
+409 Conflict
+410 Gone
+411 Length Required
+412 Precondition Failed
+413 Payload Too Large
+414 URI Too Long
+415 Unsupported Media Type
+416 Range Not Satisfiable
+417 Expectation Failed
+418 I'm a teapot
+420 Method Failure
+421 Misdirected Request
+422 Unprocessable Entity
+423 Locked
+424 Failed Dependency
+426 Upgrade Required
+428 Precondition Required
+429 Too Many Requests
+431 Request Header Fields Too Large
+451 Unavailable For Legal Reasons
+
+5XX Server errors
+500 Internal Server error
+501 Not Implemented
+502 Bad Gateway
+503 Service Unavailable
+504 gateway Timeout
+505 Http version not supported
+506 Varient Also negotiate
+507 Insufficient Storage
+508 Loop Detected
+510 Not Extended
+511 Network Authentication Required
+....................................................................................
+			Non blocking(Async)  and REST API
+....................................................................................
+
+As we discussed already, Quarkus supports non blocking io arch. 
+
+Quarkus is running on vertx Engine.
+
+Vertx engine uses non blocking infrastrastructure of the operating system.
+
+Vertx Provides threading model which are two types of threads.
+
+1.Non Blocking threads- Event Loop Threads.
+2.Blocking threads or Worker Pool threads
+
+
+Non Blocking threads or Event Loop Threads are used to multiplex the incoming requests.
+Vertx Engine provides per cpu core two threads, if i have 12 core, then i would have 24 threads to handle incoming requests.
+
+Worker pool threads are used to handle "Request Thread Permodel" - One request and one thread.
+By default all Rest api runs on "Worker Pool thread".
+
+
+Testing Threads:
+................
+
+package com.ibm.rest.responses;
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+@Path("threads")
+public class BlockingThreadResource {
+    @GET
+    public String runOnWorkerPool() {
+        System.out.println("Thread = > " + Thread.currentThread().getName());
+        return "Worker pool";
+    }
+}
+
+After Running
+http://localhost:8080/threads
+Worker pool
+
+Thread = > executor-thread-1
+
+Here exector-thread-1 is "Blocking thread" meaning that our code is running request per thread model.
+....................................................................................
+			How to run on non blocking thread
+....................................................................................
+
+if your endpoint method needs to accomplish an async or reactive task before being able to answer to the client, you can declare your method to return "Uni/Multi",
+in which case current http request to be turned as non blocking handled by "event loop thread", the current method will not return result immediately rather which suspends current http thread.
+
+package com.ibm.rest.responses;
+
+import io.smallrye.mutiny.Uni;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+import java.util.List;
+
+@Path("threads")
+public class BlockingThreadResource {
+
+    //blocking code: running on worker pool thread
+    @GET
+    public String runOnWorkerPool() {
+        System.out.println("Thread = > " + Thread.currentThread().getName());
+        return "Worker pool";
+    }
+
+    //non blocking code: running on event loop thread
+
+    @GET
+    @Path("eventloop")
+    public Uni<String> runOnEventLoop() {
+        System.out.println("Thread => " + Thread.currentThread().getName());
+        return Uni.createFrom().item("Hello Uni");
+    }
+
+    //reactive Products
+    @GET
+    @Path("reactive/products")
+    public Uni<List<Product>> getProducts() {
+        System.out.println("Products Thread => " + Thread.currentThread().getName());
+        List<Product> products = List.of(new Product(1, "Phone", 13, 34999.90f));
+        return Uni.createFrom().item(products);
+    }
+
+
+}
+....................................................................................
+			How to send Custom  Headers in the Uni
+
+How to send "Non Reactive Response Object"?
+ @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getProducts() {
+        List<Product> products = List.of(new Product(1, "Phone", 1000, 23.9F));
+        return Response
+                .ok()  // 200
+                .entity(products) // content
+                .header("productheader", "product") //custom header
+                .build();
+    }
+
+How to send "Reactive Response Object"?
+
+We have special Reactive Response class calle "RestResponse".
+package com.ibm.rest.responses;
+
+import io.smallrye.mutiny.Uni;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.jboss.resteasy.reactive.RestResponse;
+import org.jboss.resteasy.reactive.RestResponse.ResponseBuilder;
+
+import java.util.List;
+
+@Path("threads")
+public class BlockingThreadResource {
+
+    //blocking code: running on worker pool thread
+    @GET
+    public String runOnWorkerPool() {
+        System.out.println("Thread = > " + Thread.currentThread().getName());
+        return "Worker pool";
+    }
+
+    //non blocking code: running on event loop thread
+
+    @GET
+    @Path("eventloop")
+    public Uni<String> runOnEventLoop() {
+        System.out.println("Thread => " + Thread.currentThread().getName());
+        return Uni.createFrom().item("Hello Uni");
+    }
+
+    //reactive Products
+    @GET
+    @Path("reactive/products")
+    public Uni<List<Product>> getProducts() {
+        System.out.println("Products Thread => " + Thread.currentThread().getName());
+        List<Product> products = List.of(new Product(1, "Phone", 13, 34999.90f));
+        return Uni.createFrom().item(products);
+    }
+
+    //Response Reactive
+
+    @GET
+    @Path("/reactive/reactiveresponse")
+    public RestResponse<List<Product>> getReactiveResponse() {
+        List<Product> products = List.of(new Product(1, "Phone", 13, 34999.90f));
+        return ResponseBuilder.ok(products).header("reactive", "nonblocking").build();
+
+    }
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,0 +1,143 @@
+			    Distributed Configuration
+			   (Microservice Confiuration)
+
+
+MicroProfile Config Specification
+.....................................................................................
+In Micro service Applications, configurations are always critical. we have to store application configuration information within application or centerialzed way..
+
+In Quarkus Microprofile specification has been integrated with "SmallRye"
+
+
+             QuarkusApp
+                 |
+      SmallRye Config Implementation
+                 |
+          MicroProfile config Spec
+
+Core Concepts:
+
+1.Config Sources:
+  The place from where the configuration data is present.
+
+1.(400) System properties
+
+2.(300) Environment variables
+
+3.(295) .env file in the current working directory
+
+4.(260) Quarkus Application configuration file in $PWD/config/application.properties
+
+5.(250) Quarkus Application configuration file application.properties in classpath
+
+6.(100) MicroProfile Config configuration file META-INF/microprofile-config.properties in classpath
+
+7.Third Party Configuration infrastructure
+  consul,kubernetes,zookeeper,git,external webserver etc.....
+
+
+ A configuration property lookup starts by the "highest ordinal configuration source available and works it way down to other sources until a match is found". This means that any configuration property may override a value just by setting a different value in a higher ordinal config source. For example, a property configured using an environment property overrides the value provided using the application.properties file.
+
+Use Case : how to read config values from the application.properties
+
+
+src/resources/application.properties
+#application
+greeting.message=Hello,How are you?
+
+
+package com.ibm.config.application;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+@Path("properties")
+public class PropertyFileResource {
+
+    @ConfigProperty(name = "greeting.message")
+    String message;
+
+    @GET
+    public String readFromPropertyFile() {
+        return message;
+    }
+}
+................................................................................
+		What if the config property not present in the configuration file
+................................................................................
+application.properities
+
+
+if no property found in any config source, the system will throw exception.
+
+ Suppressed: java.util.NoSuchElementException: SRCFG00014: The config property greeting.message is re
+quired but it could not be found in any config source
+                at io.smallrye.config.SmallRyeConfig.convertValue(SmallRyeConfig.java:299)
+                at io.smallrye.config.inject.ConfigProducerUtil.getValue(ConfigProducerUtil.java:104)       
+                at io.quarkus.arc.runtime.ConfigRecorder.validateConfigProperties(ConfigRecorder.java:60) 
+
+Solution :
+ Default Property value
+package com.ibm.config.application;
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+@Path("properties")
+public class PropertyFileResource {
+
+    @ConfigProperty(name = "greeting.message", defaultValue = "Default Message")
+    String message;
+
+    @GET
+    public String readFromPropertyFile() {
+        return message;
+    }
+}
+..................................................................................
+		  Programmetic way of accesssing configuration Property
+....................................................................................
+
+Without Annotation also we can access configuration properties.
+
+ConfigProvider:
+  It is class used to read config values.
+
+package com.ibm.config.application;
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+@Path("properties")
+public class PropertyFileResource {
+
+    @ConfigProperty(name = "greeting.message", defaultValue = "Default Message")
+    String message;
+
+    @GET
+    public String readFromPropertyFile() {
+        return message;
+    }
+
+    @GET
+    @Path("/configviacode")
+    public String helloconfig() {
+        String message = ConfigProvider
+                .getConfig()
+                .getOptionalValue("greeting.message", String.class)
+                .orElse("Greeting");
+        return message;
+    }
+}
+
+
+
+
+
+ 
+       
+
+

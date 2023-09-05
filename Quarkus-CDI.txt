@@ -1,0 +1,780 @@
+..............................................................................................
+				  Dependency Injection - IOC
+..............................................................................................
+
+What is IOC?
+ Inversion of Control is design pattern for creating depandent objects and injecting into another.
+
+How IOC is implemented in Spring?
+ Spring Container is the reference implemnetation of IOC design pattern
+
+How IOC is implemented in Quarkus?
+  Quarkus uses JEE spec called CDI context Dependency Injection
+
+What is CDI?
+  CDI is JEE Spec? -Jakarta Contexts and Dependency Injection
+
+
+Quarkus and CDI ?
+ Quarkus has not implemented 100% CDI spec due to some reasons.
+
+  "Quarkus ArC" is a build-time oriented dependency injection based on CDI 2.0.
+
+		        Quarkus Application
+				|
+	         Quarkus Arc -layer built on the top of CDI
+				  |
+			       JEE CDI
+
+
+
+JEE CDI Vs Quarkus CDI:
+......................
+
+JEE CDI "resolves" bean dependency during runtime of an application,after deployment, if something goes wrong, errors are reported only during runtime.
+
+Quarkus CDI uses a model called "Build Time"
+   During application build process, if there is any dependency missmatch related errors are reported.
+
+Build-time Processing Benefits and Drawbacks:
+..............................................
+
+Fail Fast
+  Beans and dependencies are validated during the build so that your application can never fail in production with common problems such as AmbiguousResolutionException or UnsatisfiedResolutionException.
+
+Instant Startup
+  When the app starts ArC just loads all the metadata and initializes some internal structures. There is no need to analyze the application classes again. This means negligible startup overhead.
+ 
+Minimized Runtime
+  In Quarkus 0.19, ArC plus integration runtime consist of 72 classes and occupies ~ 140 KB in jars. Weld 3.1.1 (CDI Reference Implementation) core is roughly 1200 classes and approx. 2 MB jar. In other words, ArC runtime takes approx. 7% of the Weld runtime in terms of number of classes and jar footprint.
+
+Optimized Code Paths and Metadata Structures
+  When generating the metadata classes ArC can sometimes produce leaner and smarter logic because it has the whole application analyzed already. 
+
+Core Features of CDI:
+
+1.Bean: What is Bean?
+
+Bean is java object
+
+Types of Beans:
+
+1.Application Beans(pojos)
+   Objects are created by developer 
+   Objects life cycle is managed by developer and JVM
+
+2.Container managed Bean
+   Objects created by the Container
+
+What is container?
+   Container is runtime where quarkus apps are running.
+ 
+  Object life cycle are managed by Runtime 
+
+What are the advantages of Container Managed Bean?
+
+>The developer can focus application logic.
+
+
+				 CDI implemenation
+
+CDI is implemented via "Annotations"
+
+Apis in cdi:
+
+1.javax.inject
+2.javax.enterprise.inject - core di apis
+3.javax.enterprise.context - scope and contextuaal apis
+4.javax.enterprise.events -  publishing events and listening events-  container wide event driven programming
+5.javax.enterprise.util
+6.javax.interceptor
+
+Common Annoations:
+
+1.@Inject  
+2.@Qualifer
+3.LifeCycle of Bean
+   @ApplicationScoped
+   @SessionScoped
+   @RequestScoped
+   @SingleTon
+ 
+4.@Observes - event listner
+....................................................................................
+
+Quarkus app biz logic
+
+Quarkus:
+ 1.Controllers - Resource -REST Api
+ 2.Service - Having data and Biz logic
+
+
+Basic Dependency:
+package org.acme;
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+
+@Path("/hello")
+public class GreetingResource {
+
+    GreetingService greetingService = new GreetingService();
+
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public String hello() {
+        return greetingService.sayHello();
+    }
+}
+
+package org.acme;
+
+public class GreetingService {
+    public String sayHello() {
+        return "Hello from RESTEasy Reactive";
+    }
+}
+
+
+The class "GreetingService" is called Bean class- Application Bean- we have to instance of this class.
+
+Quarkus recommends to apply "IOC" principle: Dont create object by yourself. ask the container to create and manage- just use created object.
+
+
+@ApplicationScoped
+@SingleTon
+@SessionScoped
+@RequestScoped
+
+These annotations marks the class , so that the container creates object automatically and make it available ready for use.
+
+
+package org.acme;
+
+
+import jakarta.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class GreetingService {
+    public String sayHello() {
+        return "Hello from RESTEasy Reactive";
+    }
+}
+
+
+package org.acme;
+
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+
+@Path("/hello")
+public class GreetingResource {
+
+//    GreetingService greetingService = new GreetingService();
+
+    @Inject
+    GreetingService greetingService;
+
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public String hello() {
+        return greetingService.sayHello();
+    }
+}
+.....................................................................................	     			Types of Injection in Quarkus  -Injection Points
+
+1.Setter Injection
+2.Field Injection
+3.Constructor injection
+
+Simple Injection:
+package org.acme.services;
+
+import javax.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class WelcomeService {
+    public String sayWelcome(){
+        return "Welcome to Quarkus!!!";
+    }
+}
+
+package org.acme.resource;
+
+import org.acme.services.WelcomeService;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.Response;
+
+@Path("/api/welcome")
+public class WelcomeResource {
+    //  private WelcomeService welcomeService = new WelcomeService();
+    //Dependency injection
+    @Inject
+    private WelcomeService welcomeService;
+
+    @GET
+    public Response sayWelcome() {
+        return Response.ok().entity(welcomeService.sayWelcome()).build();
+    }
+}
+....................................................................................
+		    Setter Injections
+...................................................................................
+package org.acme.resource;
+
+import org.acme.services.WelcomeService;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.Response;
+
+@Path("/api/welcome")
+public class WelcomeResource {
+    //  private WelcomeService welcomeService = new WelcomeService();
+    //Dependency injection
+    //Field Injection
+//    @Inject
+//    private WelcomeService welcomeService;
+    //Setter Injection
+    private  WelcomeService welcomeService;
+    @Inject
+    public void setWelcomeService(WelcomeService welcomeService) {
+        this.welcomeService = welcomeService;
+    }
+
+    @GET
+    public Response sayWelcome() {
+        return Response.ok().entity(welcomeService.sayWelcome()).build();
+    }
+}
+...................................................................................
+				Constructor Injection
+...................................................................................
+package org.acme.resource;
+
+import org.acme.services.WelcomeService;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.Response;
+
+@Path("/api/welcome")
+public class WelcomeResource {
+    //  private WelcomeService welcomeService = new WelcomeService();
+    //Dependency injection
+    //Field Injection
+//    @Inject
+//    private WelcomeService welcomeService;
+    //Setter Injection
+//    private  WelcomeService welcomeService;
+//    @Inject
+//    public void setWelcomeService(WelcomeService welcomeService) {
+//        this.welcomeService = welcomeService;
+//    }
+    private WelcomeService welcomeService;
+
+    public WelcomeResource() {
+    }
+
+    @Inject
+    public WelcomeResource(WelcomeService welcomeService) {
+        this.welcomeService = welcomeService;
+    }
+
+    @GET
+    public Response sayWelcome() {
+        return Response.ok().entity(welcomeService.sayWelcome()).build();
+    }
+}
+...................................................................................
+...................................................................................
+
+Common Things:
+
+1.private keyword is not necessary in any type of DI
+
+package org.acme.resource;
+
+import org.acme.services.WelcomeService;
+
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.Response;
+
+@Path("/api/welcome")
+public class WelcomeResource {
+
+    WelcomeService welcomeService;
+
+    public WelcomeResource() {
+    }
+
+    @Inject
+    public WelcomeResource(WelcomeService welcomeService) {
+        this.welcomeService = welcomeService;
+    }
+
+    @GET
+    public Response sayWelcome() {
+        return Response.ok().entity(welcomeService.sayWelcome()).build();
+    }
+}
+
+As per coding guidelines, field injection is recommended.
+
+....................................................................................
+			Injecting multiple Depedencies
+....................................................................................
+
+package com.ibm.di;
+
+
+import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+import java.util.List;
+
+@Path("customers")
+public class CustomerResource {
+    @Inject
+    OrderService orderService;
+    @Inject
+    CustomerService customerService;
+
+    @GET
+    @Path("/orders")
+    public Uni<List<Order>> getOrders(){
+         return orderService.findAllOrder();
+    }
+    @GET
+    public Uni<List<Customer>> getCustomers(){
+        return customerService.findAll();
+    }
+}
+
+package com.ibm.di;
+
+
+import io.smallrye.mutiny.Uni;
+import jakarta.enterprise.context.ApplicationScoped;
+
+import java.util.List;
+
+@ApplicationScoped
+public class OrderService {
+
+    public Uni<List<Order>> findAllOrder() {
+        return Uni.createFrom().item(List.of(new Order(1, 1000.89)));
+    }
+}
+package com.ibm.di;
+
+
+import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+import java.util.List;
+
+@Path("customers")
+public class CustomerResource {
+    @Inject
+    OrderService orderService;
+    @Inject
+    CustomerService customerService;
+
+    @GET
+    @Path("/orders")
+    public Uni<List<Order>> getOrders(){
+         return orderService.findAllOrder();
+    }
+    @GET
+    public Uni<List<Customer>> getCustomers(){
+        return customerService.findAll();
+    }
+}
+
+package com.ibm.di;
+
+public class Order {
+    private  int orderId;
+    private  double orderValue;
+
+    public Order() {
+    }
+
+    public Order(int orderId, double orderValue) {
+        this.orderId = orderId;
+        this.orderValue = orderValue;
+    }
+
+    public int getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(int orderId) {
+        this.orderId = orderId;
+    }
+
+    public double getOrderValue() {
+        return orderValue;
+    }
+
+    public void setOrderValue(double orderValue) {
+        this.orderValue = orderValue;
+    }
+}
+package com.ibm.di;
+
+public class Customer {
+
+    private int id;
+    private String name;
+
+    public Customer() {
+    }
+
+    public Customer(int id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+.....................................................................................
+ 			 Interface Based Injection
+....................................................................................
+package com.ibm.di.interfaces;
+
+public interface NumberGenerator {
+    String generateISBNNumber();
+}
+package com.ibm.di.interfaces;
+
+import jakarta.enterprise.context.ApplicationScoped;
+
+import java.util.Random;
+
+@ApplicationScoped
+public class ISBNGenerator implements NumberGenerator {
+    @Override
+    public String generateISBNNumber() {
+        return "15-343334342" + Math.abs(new Random().nextInt());
+    }
+}
+
+
+package com.ibm.di.interfaces;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+
+
+@ApplicationScoped
+public class BookService {
+    //This bean uses another Bean
+    @Inject
+    NumberGenerator numberGenerator;
+
+    public Book createBook() {
+        Book book = new Book("2333", "Quarkus in Action", "Subramanian");
+        book.setIsbnNumber(numberGenerator.generateISBNNumber());
+        return book;
+    }
+}
+package com.ibm.di.interfaces;
+
+public class Book {
+    private String IsbnNumber;
+    private String name;
+    private String author;
+
+    public String getIsbnNumber() {
+        return IsbnNumber;
+    }
+
+    public void setIsbnNumber(String isbnNumber) {
+        IsbnNumber = isbnNumber;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(String author) {
+        this.author = author;
+    }
+
+    public Book(String isbnNumber, String name, String author) {
+        IsbnNumber = isbnNumber;
+        this.name = name;
+        this.author = author;
+    }
+
+    public Book() {
+    }
+}
+package com.ibm.di.interfaces;
+
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+@Path("books")
+public class BookResource {
+
+    @Inject
+    BookService bookService;
+
+    @GET
+    public Book createBook(){
+        return bookService.createBook();
+    }
+
+}
+....................................................................................
+			 Interface with Multiple Implementations
+
+
+
+package com.ibm.di.interfaces;
+
+public interface Greeter {
+    String sayGreet();
+}
+
+Multiple Implementations:
+
+package com.ibm.di.interfaces;
+
+import jakarta.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class HelloService implements Greeter {
+    @Override
+    public String sayGreet() {
+        return "Hello";
+    }
+}
+
+package com.ibm.di.interfaces;
+
+import jakarta.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class WelcomeService implements Greeter {
+    @Override
+    public String sayGreet() {
+        return "Welcome";
+    }
+}
+
+
+package com.ibm.di.interfaces;
+
+
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+@Path("greeter")
+public class GreeterResource {
+    @Inject
+    Greeter greeter;
+
+    @GET
+    public String getGreeter(){
+        return  greeter.sayGreet();
+    }
+}
+
+After Running this code:
+[error]: Build step io.quarkus.arc.deployment.ArcProcessor#validate threw an exception: jakarta.ente
+rprise.inject.spi.DeploymentException: jakarta.enterprise.inject.AmbiguousResolutionException: Ambiguous dep
+endencies for type com.ibm.di.interfaces.Greeter and qualifiers [@Default]
+        - java member: com.ibm.di.interfaces.GreeterResource#greeter
+        - declared on CLASS bean [types=[java.lang.Object, com.ibm.di.interfaces.GreeterResource], qualifier
+s=[@Default, @Any], target=com.ibm.di.interfaces.GreeterResource]
+       
+
+Quarkus could not resolve which bean implementation to be picked up.
+
+Solution:
+ 1.Using Qualifiers
+ 2.Using @Named Annoation
+
+Qualifiers are very complex, we need to write lot of code.
+
+
+Qualifier:
+
+Steps:
+1.Create Qualifier for  Hai
+import jakarta.inject.Qualifier;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Qualifier
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.FIELD, ElementType.METHOD, ElementType.TYPE})
+public @interface HaiQualifier {
+}
+
+2.Create Qualifer for Welcome
+package com.ibm.di.interfaces;
+
+import jakarta.inject.Qualifier;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Qualifier
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.FIELD, ElementType.METHOD, ElementType.TYPE})
+
+public @interface WelcomeQualifier {
+}
+
+
+3.Bind Qualifers on each Implementation Bean
+package com.ibm.di.interfaces;
+
+import jakarta.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+@WelcomeQualifier
+public class WelcomeService implements Greeter {
+    @Override
+    public String sayGreet() {
+        return "Welcome";
+    }
+}
+package com.ibm.di.interfaces;
+
+import jakarta.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+@HelloQualifier
+public class HelloService implements Greeter {
+    @Override
+    public String sayGreet() {
+        return "Hello";
+    }
+}
+
+4.Refere Qualifiers inside bean or resource
+package com.ibm.di.interfaces;
+
+
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+@Path("greeter")
+public class GreeterResource {
+    @Inject
+    // @WelcomeQualifier
+    @HelloQualifier
+    Greeter greeter;
+
+    @GET
+    public String getGreeter() {
+        return greeter.sayGreet();
+    }
+}
+.....................................................................................
+Using @Named Annotation
+
+=>YOu dont need to write custom qualifiers
+
+package com.ibm.di.interfaces;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Named;
+
+@ApplicationScoped
+@Named("welcome")
+public class WelcomeService implements Greeter {
+    @Override
+    public String sayGreet() {
+        return "Welcome";
+    }
+}
+package com.ibm.di.interfaces;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Named;
+
+@ApplicationScoped
+@Named("hello")
+public class HelloService implements Greeter {
+    @Override
+    public String sayGreet() {
+        return "Hello";
+    }
+}
+package com.ibm.di.interfaces;
+
+
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+@Path("greeter")
+public class GreeterResource {
+    @Inject
+    @Named("welcome")
+    Greeter greeter;
+
+    @GET
+    public String getGreeter() {
+        return greeter.sayGreet();
+    }
+}
+
+
+
+
+

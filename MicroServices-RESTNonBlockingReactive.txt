@@ -1149,26 +1149,232 @@ public class BlockingThreadResource {
 
 
 }
+.....................................................................................
+			Blocking and Non Blocking Threading Models
+
+Quarkus(Vertx) provides two types of threads
+
+1.Event loop thread
+   Thread which is used to build non blocking apps
+   Vertx(Quarkus) provides limited no threads to handle large concurrency
+   Quarkus enables event loop thread is activated to handle incoming request by 
+   Mutiny type called "Uni or Multi"
+
+2.Worker loop thread
+    It is Request Per thread model threads, when ever new request comes, quarkus allocats new a spearate thread for that request , that thread cant be reused by other request.
+
+....................................................................................
+.................................................................................
+		The Golden Rule - Don’t Block the Event Loop thread
 
 
+Caution:
+  You should not write any which blocks event loop thread.
+
+if you block event loop thread, vertx engine throws warning and error(Thread Blocked Exception).
+
+What are the code which blocks event loop thread.
+
+1.Thread.sleep()
+2.Waiting on a lock
+3.Waiting on a mutex or monitor (e.g. synchronized section)
+4.Doing a long lived database operation and waiting for a result
+5.Doing a complex calculation that takes some significant time.
+6.Spinning in a loop
 
 
+package com.ibm.rest.threading;
 
 
+import io.smallrye.mutiny.Uni;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+@Path("products")
+public class ProductResource {
+
+    //This api runs by "Event loop thread"
+    //This code is nonblocking code.
+    @GET
+    public Uni<String> getProduct() throws InterruptedException {
+        //Blocking code
+        Thread.sleep(10000);
+        System.out.println("Thread " + Thread.currentThread().getName());
+        return Uni.createFrom().item("Product");
+    }
+}
+after running you will get error like below:
+2023-01-30 14:57:09,464 WARN  [io.ver.cor.imp.BlockedThreadChecker] (vertx-blocked-thread-checker) Thread Th
+read[vert.x-eventloop-thread-1,5,main] has been blocked for 2373 ms, time limit is 2000 ms: io.vertx.core.Ve
+rtxException: Thread blocked
+        at java.base@11.0.11/java.lang.Thread.sleep(Native Method)
+        at com.ibm.rest.reactive.BookReactiveResource.blockBooks(BookReactiveResource.java:38)
+        at com.ibm.rest.reactive.BookReactiveResource$quarkusrestinvoker$blockBooks_3608efa748df20ad4f3b1307
+84513f30b11b4f96.invoke(Unknown Source)
+ 
+What if i want to write blocking operations inside the nonblocking code which returns Reactive?
+
+@Blocking Annotation:
+
+package com.ibm.rest.threading;
 
 
+import io.smallrye.common.annotation.Blocking;
+import io.smallrye.mutiny.Uni;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+@Path("products")
+public class ProductResource {
+
+    //This api runs by "Event loop thread"
+    //This code is nonblocking code.
+    @GET
+    @Blocking //safely delegate the work to worker thread...
+    public Uni<String> getProduct() throws InterruptedException {
+        //Blocking code
+        Thread.sleep(10000);
+        System.out.println("Thread " + Thread.currentThread().getName());
+        return Uni.createFrom().item("Product");
+    }
+}
 
 
+What if i want to schdule some tasks in delayed manner?
+
+=>Thread.sleep :Which is not reactive scheduler.
+=>onItem.delayIt() : Which is reactive scheduler
+package com.ibm.rest.reactive;
+
+import com.ibm.rest.enity.Book;
+import io.smallrye.common.annotation.Blocking;
+import io.smallrye.mutiny.Uni;
+
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import java.time.Duration;
+import java.util.List;
+
+@Path("/api/books")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public class BookReactiveResource {
+
+    @GET
+    @Path("/nonreactive")
+    public List<Book> listBooks() {
+        System.out.println("Current Thread - listBooks " + Thread.currentThread().getName());
+        return List.of(new Book("1222", "Quarkus in Action", "Subramanian"));
+    }
+
+    @GET
+    @Path("/reactive")
+    public Uni<List<Book>> getBooks() {
+        System.out.println("Current Thread - getBooks " + Thread.currentThread().getName());
+        List books = List.of(new Book("1222", "Quarkus in Action", "Subramanian"));
+        return Uni.createFrom().item(books);
+    }
+
+    @GET
+    @Path("/dontblockeventloop")
+    @Blocking //safely delegate the work to worker thread...
+    public Uni<List<Book>> blockBooks() throws InterruptedException {
+        System.out.println("Current Thread - getBooks " + Thread.currentThread().getName());
+        //Thread.sleep(2000);
+        Thread.sleep(5000);
+        List books = List.of(new Book("1222", "Quarkus in Action", "Subramanian"));
+        return Uni.createFrom().item(books);
+    }
+
+    @GET
+    @Path("/nonblockingdelay")
+    public Uni delayBooks() throws InterruptedException {
+        System.out.println("Current Thread - getBooks " + Thread.currentThread().getName());
+        List books = List.of(new Book("1222", "Quarkus in Action", "Subramanian"));
+        return Uni.createFrom().item(books).onItem().delayIt().by(Duration.ofSeconds(2));
+    }
+}
+..................................................................................
+			  Exception Handling
+..................................................................................	What can be Response
 
 
+Response Types:
+
+1.SUCCESS Response
+2.ERROR Response
+
+How to handle / Convert ERRORS/Exceptions into HTTP Response Object?
+
+ public Response getResponse(){
+
+     return Response.ok().build();
+ }
+
+2.Application Exception
+   
+  UserNotFoundException
+  PasswordMissMatchException
+  ...
+public boolean validate(){
+
+  if(passwordmatch){
 
 
+  }
+  else{ 
+       throw new PasswordMismatchException("password does not match");
+  } 
+}
+
+JAX-RS also provides the javax.ws.rs.WebApplicationException. 
+This can be thrown by application code and automatically processed by JAX-RS without
+having to write an explicit mapper.
 
 
+Steps: 
+Exception Mapper 
 
+package com.ibm.rest.exceptions;
 
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.ExceptionMapper;
+import jakarta.ws.rs.ext.Provider;
 
+@Provider // will inform the container to create object of this class
+public class WebApplicationMapper implements ExceptionMapper<WebApplicationException> {
+    @Override
+    public Response toResponse(WebApplicationException exception) {
+        return Response.ok().entity(exception.getMessage()).build();
+    }
+}
 
+Resource:
+package com.ibm.rest.exceptions;
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
+
+@Path("movies")
+public class MovieResource {
+    @GET
+    @Path("/hero/{name}")
+    public Response getHero(@PathParam("name") String name) {
+
+        if (name.equals("myhero")) {
+            return Response.ok().entity("Hero " + name).build();
+        } else {
+            throw new WebApplicationException("Hero not found");
+        }
+    }
+}
 
 
 

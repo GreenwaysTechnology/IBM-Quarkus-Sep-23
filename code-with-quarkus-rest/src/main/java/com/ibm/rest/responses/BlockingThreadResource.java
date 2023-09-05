@@ -5,6 +5,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import org.jboss.resteasy.reactive.ResponseHeader;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.RestResponse.ResponseBuilder;
 
@@ -43,9 +44,11 @@ public class BlockingThreadResource {
     @GET
     @Path("/reactive/reactiveresponse")
     @Produces(MediaType.APPLICATION_JSON)
-    public RestResponse<List<Product>> getReactiveResponse() {
+    @ResponseHeader(name = "header", value = "hello")
+    public Uni<List<Product>> getReactiveResponse() {
         List<Product> products = List.of(new Product(1, "Phone", 13, 34999.90f));
-        return ResponseBuilder.ok(products).header("reactive", "nonblocking").build();
+        System.out.println("getReactiveResponse Products Thread => " + Thread.currentThread().getName());
+        return Uni.createFrom().item(products);
     }
 
 

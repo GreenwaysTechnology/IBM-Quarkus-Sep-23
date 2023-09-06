@@ -1,5 +1,5 @@
 			    Distributed Configuration
-			   (Microservice Confiuration)
+			   (Microservice Configuration)
 
 
 MicroProfile Config Specification
@@ -132,6 +132,370 @@ public class PropertyFileResource {
         return message;
     }
 }
+....................................................................................
+			System Properties
+...................................................................................
+
+System Properties are supplied via command line using flag -D.
+
+System Properties are supplied 
+ =>During dev mode
+ =>During production mode.
+
+package com.ibm.config.application;
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+@Path("properties")
+public class PropertyFileResource {
+
+    @ConfigProperty(name = "greeting.message", defaultValue = "Default Message")
+    String message;
+
+    @GET
+    public String readFromPropertyFile() {
+        return message;
+    }
+
+    @GET
+    @Path("/configviacode")
+    public String helloconfig() {
+        String message = ConfigProvider
+                .getConfig()
+                .getOptionalValue("greeting.message", String.class)
+                .orElse("Greeting");
+        return message;
+    }
+}
+
+
+src/resources/application.properties
+#application
+greeting.message=Hello,How are you?
+
+Now , if you supply greeting.message property via system variables/properties, as per ordinal value system properties always takes highest priorty.
+so you will get system property value only.
+
+Running in dev Mode:
+quarkus dev -Dgreeting.message=Hello,FromSystem
+
+Now out put would be
+
+Hello,FromSystem.
+.....................................................................................					Environment Variables
+...................................................................................
+
+Reading config data from the "Operating system Env Variables".
+
+How to set env variable?
+ You can set env variables temp or permentally.
+
+In windows 
+ SET Command
+In linux and mac
+ export command
+
+Lab:
+ open command prompt: windows
+
+E:\session\IBM\2023\Sep\Quarkus\code-with-quarkus-config>SET greeting.message=Hello,EnvironmentVariable
+
+E:\session\IBM\2023\Sep\Quarkus\code-with-quarkus-config>quarkus dev                          
+
+package com.ibm.config.application;
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.eclipse.microprofile.config.ConfigProvider;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+@Path("properties")
+public class PropertyFileResource {
+
+    @ConfigProperty(name = "greeting.message", defaultValue = "Default Message")
+    String message;
+
+    @GET
+    public String readFromPropertyFile() {
+        return message;
+    }
+
+    @GET
+    @Path("/configviacode")
+    public String helloconfig() {
+        String message = ConfigProvider
+                .getConfig()
+                .getOptionalValue("greeting.message", String.class)
+                .orElse("Greeting");
+        return message;
+    }
+}
+
+
+src/resources/application.properties
+#application
+greeting.message=Hello,How are you?
+
+
+After running , you can notedown env variables having highest ordinal value(300) than application.properties
+
+Testing:
+          
+http://localhost:8080/properties
+
+Hello,EnvironmentVariable
+.....................................................................................
+				.env File
+.....................................................................................
+
+Adding env variables via command prompt using set or export or adding into system settings, it is very hard.
+Once the application changes operating system, then we need configure the system settings manually.
+
+.env file is bridge between your operating system env variables and application.
+
+What ever we specifiy inside ".env" file , will be added into operating system when your app boots.
+
+code-with-quarkus-config
+   |
+   .env
+
+.env file must contain variables which must be uppercase.
+
+GREETING_MESSAGE=Hello,From Env File!
+.....................................................................................
+			config/application.properties
+.....................................................................................
+
+You can store application configuration inside config/application.properties file.
+config folder must be present in the root dir of application.
+
+code-with-quarkus-config
+     |
+     config
+       |
+       application.properties
+           greeting.message=Hello,From Config Properties File
+
+When compare to application.properties over config/application.properties takes highest value.
+....................................................................................
+			 src/main/resources/application.properties
+....................................................................................
+greeting.message=Hello,How are you?
+....................................................................................
+		   META-INF/microprofile-config.properties
+
+It has the lowest ordinal value when compare to other configurations
+
+microprofile-config.properties
+     |
+ greeting.message=Hello,From Micro Profile Config Properties!
+
+...................................................................................
+			   How property searchs begin
+...................................................................................
+
+
+Flow
+    greet.message
+
+   System Properties
+	|
+        Environment variables
+		|
+		.env File
+		   |
+		   config/application.properties
+		    |
+		    resources/application.properties
+			|
+			microprofile.properties
+			  |
+	 @ConfigProperty(name = "greeting.message", defaultValue = "Default Message")
+			  |
+			   default value to be picked up
+
+....................................................................................
+			   Advanced Config Sources
+....................................................................................
+
+1.YAML
+2.Third Party configuration stores
+   =>HashiCorp vault
+   =>Consul
+   =>Spring Cloud
+
+YAML Configuration:
+ YAML is very popular format.
+ Kubernets/docker relies hevily on the YAML format to write the various resource descriptions.
+
+Enable YAML Configuration:
+
+quarkus ext add config-yaml
+
+Steps:
+
+1.remove application.properites and add application.yaml
+
+application.yaml
+  |
+greeting:
+  message: Welcome to YAML Config
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+@Path("yaml")
+public class YAMLResource {
+
+    @ConfigProperty(name = "greeting.message", defaultValue = "Default value")
+    String message;
+
+    @GET
+    public String getYaml() {
+        return message;
+    }
+}
+....................................................................................
+			   External Configuration Infrastructures
+....................................................................................
+
+As of now we have discussed application configuration within application itself.
+
+In case of microservices , we need to store "centeralized config information" which is used by many microservices- Distributed Configurations
+
+There are many config sources available
+
+1.HashiCorp valut 
+2.Consul configurations
+3.Spring Cloud
+etc...
+.....................................................................................
+
+Steps:
+1.install consul.
+ You can install directly or via docker.
+
+docker run --rm --name consul -p 8500:8500 -p 8501:8501 consul:1.7 agent -dev -ui -client=0.0.0.0 -bind=0.0.0.0 --https-port=8501
+
+2.install consul dependency
+ quarkus ext add config-consul
+
+
+3.in order to connect consul server , we need to configure consul host,port...
+  application.properties
+#Consul server configuration.
+
+#Use the same name as the application Name that was configured when standing up the config server
+quarkus.application.name=consul-test
+
+#Enable retrieval of configuration from Consul server -this is off by default
+quarkus.consul-config.enabled=true
+
+#There is a Key in Consul's KV Store that Quarkus application will read and try to extract properties from
+quarkus.consul-config.properties-value-keys=config/${quarkus.application.name}
+ 
+
+4.Create Kv Store in the Consul server
+
+Key/Value
+ config/consul-test : PropertyName=value
+
+
+Java Code:
+package com.ibm.config.consul;
+
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+@Path("consul")
+public class GreetingResource {
+
+    @ConfigProperty(name = "greeting.message", defaultValue = "Hello from default")
+    String message;
+
+    @GET
+    public String sayHello() {
+        return message;
+    }
+}
+.....................................................................................
+				Profiles
+.....................................................................................
+Enviroment Based configuration:
+...............................
+
+1.Production env
+2.Dev Env
+3.Test Env
+4.Custom Env
+   -Staging
+   -Pipeline 
+
+What if i want to supply the properties based on Env.
+
+Profile Notations:
+
+In properties file
+
+%dev|prod|test.property.property=value
+
+eg:
+%dev.greeting.message=Hello from dev
+%prod.greeting.message=Hello from Prod
+%test.greeting.message=Hello from Test
+
+Yaml
+"%dev"
+"%prod"
+"%test"
+
+
+eg:
+package org.acme;
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+@Path("/profiles")
+public class GreetingResource {
+
+    @ConfigProperty(name="greeting.message",defaultValue = "Default Greeting")
+    String message;
+
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public String hello() {
+        return message;
+    }
+}
+
+application.properties
+#Dev Message
+%dev.greeting.message=Hello,I am From Dev
+#Prod Message
+%prod.greeting.message=Hello,I am From Prod
+
+
+
+
+
+
+
+
+
+ 
+
+
+
 
 
 

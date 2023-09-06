@@ -1,0 +1,135 @@
+				Quarkus-Reactive-Data Source
+
+.....................................................................................
+
+Quarkus ORM implementation via JPA With Hibernate and Panache.
+
+Microservices design pattern called "Data Base Per service Pattern".According to this Pattern Quarkus implements Data sources.
+
+application.properties
+
+quarkus.datasource."ServiceName".dbProperties=value
+
+eg:
+
+without service names
+quarkus.datasource.db-kind=h2
+quarkus.datasource.username=username-default
+quarkus.datasource.jdbc.url=jdbc:h2:mem:default
+quarkus.datasource.jdbc.max-size=13
+
+With Service Names
+
+quarkus.datasource.users.db-kind=h2
+quarkus.datasource.users.username=username1
+quarkus.datasource.users.jdbc.url=jdbc:h2:mem:users
+quarkus.datasource.users.jdbc.max-size=11
+
+quarkus.datasource.inventory.db-kind=h2
+quarkus.datasource.inventory.username=username2
+quarkus.datasource.inventory.jdbc.url=jdbc:h2:mem:inventory
+quarkus.datasource.inventory.jdbc.max-size=12
+
+quarkus.datasource.customers.db-kind=postgresql 
+quarkus.datasource.customers.username=<your username>
+quarkus.datasource.customers.password=<your password>
+quarkus.datasource.customers.jdbc.url=jdbc:postgresql://localhost:5432/hibernate_orm_test
+quarkus.datasource.customers.jdbc.max-size=16
+
+
+DbKind: Type of database
+common db-kind value conventions
+1.DB2: db2
+2.Derby: derby
+3.H2: h2
+3.MariaDB: mariadb
+4.Microsoft SQL Server: mssql
+5.MySQL: mysql
+6.Oracle: oracle
+7.PostgreSQL: postgresql, pgsql or pg
+
+Data Source:
+...........
+Agroal data source is default datasource...
+  It is modern,lightweight connection pool implementation designed for high performance.
+  It is similar to Apache DBCP libs.
+
+Data sources are powered with reactive programming
+   Datasources are powered with non blocking arch....
+
+Transactions:
+   Quarkus data module offeres transaction implementations.
+   Quarkus implments Narayana as transaction manager
+
+What is Narayana?
+Narayana is a transactions toolkit which provides support for applications developed using a broad range of standards-based transaction protocols:
+
+JTA
+JTS
+Web-Service Transactions
+REST Transactions
+STM
+
+Reactive Data sources:
+  quarkus-reactive-db2-client
+  quarkus-reactive-pg-client
+ etc...
+
+Coding Pattern:
+   Quarkus uses hibernate as low level engine for persistence and built upon JPA   Standards
+   Quarkus uses Panache framework built on top of Hibernate.
+
+			Panache
+			  |
+			 JPA
+			  |
+			Hibernate
+			   
+.....................................................................................
+
+....................................................................................
+			    JPA With Hibernate
+...................................................................................
+
+Steps:
+
+1.You need database 
+   db2
+   Derby(in-process)
+   H2(in-process)
+   Mariadb
+   mysql
+   postgresql
+   oracle
+
+How to install database for dev?
+
+Two ways
+1.install db server
+2.install via containers -dockers
+
+Quarkus apps  has mode
+
+1.dev mode
+  start db server  
+     standalone
+     via docker
+2.prod mode
+   via containers
+   via vms
+
+Quarkus offers features dev services for databases
+...................................................
+
+If your quaurkus apps runs in dev/test mode, quarkus provides you with a zero config database outof the box,
+ a feature we refer to as "Dev Services"
+
+If you enable dev service for any database, quarkus runs database as part of app within embeded docker container.
+ db2,mariadb,mssql,mysql,oracle,postgresql-dev services enabled database
+
+application.properties
+quarkus.devservices.enabled=true/false
+quarkus.datasource.devservices.enabled=true/false
+
+
+

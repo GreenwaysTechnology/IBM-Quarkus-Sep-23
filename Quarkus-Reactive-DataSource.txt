@@ -162,27 +162,30 @@ quarkus ext add hibernate-reactive-panache
 
 application.properties
 #Dev Services : Todo: this configuration will not be applicable for production
-quarkus.devservices.enabled=true
-quarkus.datasources.devservices.enabled=true
+quarkus.devservices.enabled=false
+quarkus.datasource.devservices.enabled=false
 
-#Datasource Configuration
+#Datasource configuration
 quarkus.datasource.db-kind=postgresql
 quarkus.datasource.username=quarkus
-quarkus.datasource.password=password
-
+quarkus.datasource.password=quarkus
+#quarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5432/db
+quarkus.datasource.reactive.url=vertx-reactive:postgresql://localhost:5432/db
 #Hibernate configuration
 quarkus.hibernate-orm.database.generation=drop-and-create
 quarkus.hibernate-orm.log.sql=true
-qurkus.hibernate-orm.sql-load-script=import.sql
+quarkus.hibernate-orm.sql-load-script=import.sql
 
 
 
 Create sample table and some sample data
 
 resources/import.sql
-INSERT INTO CUSTOMER(id,name,city) VALUES(nextval ('hibernate_sequence'),'Subramanian','Coimbatore');
-INSERT INTO CUSTOMER(id,name,city) VALUES(nextval ('hibernate_sequence'),'Murugan','Coimbatore');
-INSERT INTO CUSTOMER(id,name,city) VALUES(nextval ('hibernate_sequence'),'Geetha','Chennai');
+INSERT INTO CUSTOMER(id,name,city) VALUES (1, 'Subramanian','Coimbatore');
+INSERT INTO CUSTOMER(id,name,city) VALUES (2, 'Murugan','Coimbatore');
+INSERT INTO CUSTOMER(id,name,city) VALUES (3, 'Geetha','Chennai');
+ALTER SEQUENCE customer_seq RESTART WITH 4;
+
 ....................................................................................
 				 Hiberate Coding
 ....................................................................................
@@ -266,6 +269,19 @@ import jakarta.ws.rs.core.Response;
 
 import java.util.List;
 
+package com.ibm.quarkus.data.activerecord.entity;
+
+import static jakarta.ws.rs.core.Response.Status.CREATED;
+import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
+import static jakarta.ws.rs.core.Response.Status.NO_CONTENT;
+
+import io.quarkus.hibernate.reactive.panache.Panache;
+import io.smallrye.mutiny.Uni;
+import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Response;
+
+import java.util.List;
+
 @Path("customers")
 public class CustomerResource {
 
@@ -296,30 +312,32 @@ public class CustomerResource {
 
     }
 
+    /**
+     *
+     * Note:
+     * PUT localhost:8080/customers/1
+     * Input:
+     * {
+     *     "id": 1,
+     *     "name": "Subramanian",
+     *     "city": "Chennai"
+     * }
+     */
     @PUT
-    @Path("/{id}")
+    @Path("{id}")
     public Uni<Response> update(Long id, Customer customer) {
-        //Error Handling
         if (customer == null || customer.name == null) {
-            throw new WebApplicationException("CustomerNot Found", 400);
+            throw new WebApplicationException("Customer name was not set on request.", 422);
         }
+        System.out.println(id  + " " +  customer);
         return Panache
-                .withTransaction(() -> Customer.<Customer>findById(id))
-                .onItem()
-                .ifNotNull()
-                .invoke(entity ->
-                        {
-                            entity.city = customer.city;
-                            System.out.println(entity.city + " " + entity.name);
-                        }
-
+                .withTransaction(() -> Customer.<Customer> findById(id)
+                        .onItem().ifNotNull().invoke(entity -> entity.city = customer.city)
                 )
-                .onItem().ifNotNull().transform(entity -> {
-                    return Response.ok(entity).build();
-                })
-                .onItem().ifNull()
-                .continueWith(Response.ok().status(Response.Status.NOT_FOUND)::build);
+                .onItem().ifNotNull().transform(entity -> Response.ok(entity).build())
+                .onItem().ifNull().continueWith(Response.ok().status(NOT_FOUND)::build);
     }
+
 
     //delete
     @DELETE
@@ -332,6 +350,7 @@ public class CustomerResource {
 
     }
 }
+
 
 How to test
 
@@ -359,6 +378,17 @@ Response:
     }
 ]
 
+UPDATE
+
+PUT http://localhost:8080/customers/2
+
+Payload
+{
+    "id": 2,
+    "name": "Murugan",
+    "city": "Banaglore"
+}
+
 DELETE http://localhost:8080/customers/1
 
 Response:
@@ -366,6 +396,12 @@ Response:
 ....................................................................................
 			Repository Pattern /DAO Pattern
 ....................................................................................
+
+Mixing blocking and Non blocking dependencies of same type like hibernate and reactive hiberante libs not allowed in the same project
+you will get error.
+
+  hibernate-reactive-panache
+  hibernate-panache
 
 
 Traditional Pattern : Non Reactive
@@ -428,6 +464,13 @@ public class FruitRepository implements PanacheRepository<Fruit> {
 
 3.Write Rest api
 ->You have to inject Repository class
+
+When we write "POST,UPDATE,DELETE" , we must enable "Transaction" using
+
+@Transactional Annotation
+
+
+
 package org.acme.hibernate.orm.panache.repository;
 
 import java.util.List;
@@ -550,6 +593,182 @@ public class FruitRepositoryResource {
 
     }
 }
+.....................................................................................
+Reactive Version of DAO Pattern:
+................................
+   <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-reactive-pg-client</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-hibernate-reactive-panache</artifactId>
+    </dependency>
+
+
+Steps:
+1.Enity
+package com.ibm.quarkus.data.dao.entity;
+
+import java.time.LocalDate;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+
+@Entity
+public class Person {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+
+2.Declare Repository class
+
+PanacheRepository class must be from "reactive version"
+
+io.quarkus.hibernate.reactive.panache.PanacheRepository;
+
+
+package com.ibm.quarkus.data.dao.entity;
+
+import io.quarkus.hibernate.reactive.panache.PanacheRepository;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+
+
+@ApplicationScoped
+public class PersonRepository implements PanacheRepository<Person> {
+}
+
+3.How to Access Repository inside REST API.
+
+3.1. we have inject Repository class.
+
+@Path("persons")
+public class PersonResource {
+
+    @Inject
+    PersonRepository personRepository;
+}
+
+3.1.CURD Operations
+
+ =>Return type must be "Reactive Type" - Uni<?> or Multi<?>
+ =>POST ,UPDATE, DELETE Operations must be handled with in "Transactions" boundaries
+ =>In Active Pattern transactions are handled using apis
+   Panache.withTransactions()
+ =>In DAO /Repository Pattern , we have to use always "Annotations" only.
+   
+  =>In Non Reactive we used "@Transactional" annotation.
+  =>In Reactive we have to use "@WithTransaction" annotation.
+    
+package com.ibm.quarkus.data.dao.entity;
+
+
+package com.ibm.quarkus.data.dao.entity;
+
+
+import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
+import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.*;
+
+import java.util.List;
+
+@Path("persons")
+public class PersonResource {
+
+    @Inject
+    PersonRepository personRepository;
+
+    @GET
+    public Uni<List<Person>> findAll() {
+        return personRepository.listAll();
+    }
+
+    @Path("/{id}")
+    @GET
+    public Uni<Person> findById(@PathParam("id") Long id) {
+        return personRepository.findById(id);
+    }
+
+    @POST
+    @WithTransaction //reactive version of transaction annotation
+    public Uni<Person> create(Person person) {
+        return personRepository.persist(person);
+    }
+
+    @PUT
+    @WithTransaction
+    public Uni<Integer> update(Person person) {
+        String query = "name ='" + person.getName() + "' where id = ?1";
+        System.out.println(query);
+        return personRepository.update(query, person.getId());
+    }
+
+    @Path("/{id}")
+    @DELETE()
+    @WithTransaction
+    public Uni<Boolean> remove(Long id) {
+        return personRepository.deleteById(id);
+    }
+}
+
+
+Testing:
+
+GET localhost:8080/persons
+
+Response:
+
+[
+    {
+        "id": 2,
+        "name": "Ram"
+    },
+    {
+        "id": 1,
+        "name": "Subramanian Murugan"
+    }
+]
+
+POST localhost:8080/persons
+
+Payload
+{
+    "name":"Geetha"
+}
+PUT localhost:8080/persons
+
+Payload
+{
+    "id": 1,
+    "name": "Subramanian Murugan"
+}
+
+DELETE localhost:8080/persons/3
+
+
 
 
 

@@ -1,0 +1,604 @@
+				Micro service Communications
+.....................................................................................
+
+Services are represented by Apis
+
+Apis are modeled in many ways
+
+1.RPI
+    -REST API
+    -RPC - Grpc
+    -GraphQl api
+2.Message based
+    -MOM
+       -redis,RabbitMQ,IBM MQ
+    -Event driven Arch
+       Vertx-Event Bus
+       Kafka
+
+Service Communications:
+
+REST: Rest to Rest - http
+
+Quarkus Implmementations
+  1.MicroProfile Rest Client -  both reactive and non reactive
+  2.Vertx WebClient - By Default Reactive.
+  3.Java 11 HttpClient - Sync and Async
+
+
+1.MicroProfile Rest Client
+..........................
+
+Create New Project
+
+quarkus create app code-with-quarkus-servicecommunications
+
+Dependencies:
+quarkus ext add resteasy-reactive-jackson
+quarkus ext add rest-client-reactive-jackson
+quarkus ext add rest-client-reactive
+
+In Service communications there are two actors
+
+1.Caller
+  Who is calling the other service 
+2.Callee
+  Who is called by the other services
+
+Flow:
+
+ User/App ------http-->Caller------>Callee
+
+
+Steps:
+1.Callee Service:
+
+package com.ibm.rest.client;
+import jakarta.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class HelloService {
+
+    public String hello() {
+        return "Hello Service";
+    }
+}
+package com.ibm.rest.client;
+
+//callee Service
+
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+@Path("/hello")
+public class HelloResource {
+
+    @Inject
+    HelloService helloService;
+
+    @GET
+    public String hello() {
+        return helloService.hello();
+    }
+}
+
+Step 2:
+ Rest Client Interface: To facilate Rest Communications between two services
+package com.ibm.rest.client.restcommunicator;
+
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+
+@Path("/hello")
+@RegisterRestClient
+public interface HelloRestClientService {
+    //CURD OPERATIONS OF CALL Declaration
+    @GET
+    String sayHello();
+}
+
+1.Here we need to declare interface
+2.Annotate Interface with @RegisterRestClient
+3.@Path("hello") indicates the call route url
+4.HTTP method and apis mapping inside interface
+
+Step 3: Configure the application.properties
+#Mapping the Rest Client
+com.ibm.rest.client.restcommunicator.HelloRestClientService/mp-rest/url=http://localhost:8080
+com.ibm.rest.client.restcommunicator.HelloRestClientService/mp-rest/scope=javax.inject.Singleton
+
+Step 4: Inject the RestClient Interface into caller Service
+
+package org.acme;
+
+import com.ibm.rest.client.restcommunicator.HelloRestClientService;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
+
+@Path("/greet")
+public class GreetingResource {
+
+    @Inject
+    @RestClient
+    HelloRestClientService helloRestClientService;
+
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public String hello() {
+        return  helloRestClientService.sayHello();
+    }
+}
+
+How to Test:
+User uses the url
+http://localhost:8080/greet
+   Which delegates to another service called "HelloResource".
+...................................................................................
+			 Refactored configurations
+...................................................................................
+
+application.properties
+#Mapping the Rest Client
+com.ibm.rest.client.restcommunicator.HelloRestClientService/mp-rest/url=http://localhost:8080
+com.ibm.rest.client.restcommunicator.HelloRestClientService/mp-rest/scope=javax.inject.Singleton
+
+here we have mentioned class Name using full package Name , this can be simplified
+
+package com.ibm.rest.client.restcommunicator;
+
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+
+@Path("/hello")
+//@RegisterRestClient
+@RegisterRestClient(configKey = "hello-api")
+public interface HelloRestClientService {
+    //CURD OPERATIONS OF CALL Declaration
+    @GET
+    String sayHello();
+}
+
+application.properties:
+#Mapping the Rest Client
+#com.ibm.rest.client.restcommunicator.HelloRestClientService/mp-rest/url=http://localhost:8080
+#com.ibm.rest.client.restcommunicator.HelloRestClientService/mp-rest/scope=javax.inject.Singleton
+
+#Refactored configuration
+hello-api/mp-rest/url=http://localhost:8080
+hello-api/mp-rest/scope=javax.inject.Singleton
+...................................................................................
+			 Reactive type: Non Blocking way
+....................................................................................
+
+Callee:
+package com.ibm.rest.client;
+
+
+import io.smallrye.mutiny.Uni;
+import jakarta.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class HelloService {
+
+    public Uni<String> hello() {
+        return Uni.createFrom().item("Hello Rest Client Service");
+    }
+}
+
+package com.ibm.rest.client;
+
+//callee Service
+
+import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+@Path("/hello")
+public class HelloResource {
+
+    @Inject
+    HelloService helloService;
+
+    @GET
+    public Uni<String> hello() {
+        return helloService.hello();
+    }
+}
+
+Rest client Interface:
+package com.ibm.rest.client.restcommunicator;
+
+
+import io.smallrye.mutiny.Uni;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+
+@Path("/hello")
+//@RegisterRestClient
+@RegisterRestClient(configKey = "hello-api")
+public interface HelloRestClientService {
+    //CURD OPERATIONS OF CALL Declaration
+    @GET
+    Uni<String> sayHello();
+}
+
+Caller Side
+package org.acme;
+
+import com.ibm.rest.client.restcommunicator.HelloRestClientService;
+import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
+
+@Path("/greet")
+public class GreetingResource {
+
+    @Inject
+    @RestClient
+    HelloRestClientService helloRestClientService;
+
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public Uni<String> hello() {
+        return  helloRestClientService.sayHello();
+    }
+}
+
+TasK
+.....
+Create  Customer callee Service with reactive hibernate integration
+Create  CustomerCaller service which should call Customer Service 
+You can use either Active Record pattern or DAO pattern.
+....................................................................................
+			 2.Vertx WebClient - By Default Reactive.
+
+
+There are two dependencies we need to add 
+<dependency>
+  <groupId>io.smallrye.reactive</groupId>
+  <artifactId>smallrye-mutiny-vertx-web-client</artifactId>
+</dependency>
+
+<dependency>
+  <groupId>io.quarkus</groupId>
+  <artifactId>quarkus-vertx</artifactId>
+</dependency>
+
+
+
+Callee: The same call example we have used for "MicroProfile Rest client".
+
+package com.ibm.rest.client;
+import io.smallrye.mutiny.Uni;
+import jakarta.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class HelloService {
+
+    public Uni<String> hello() {
+        return Uni.createFrom().item("Hello Rest Client Service");
+    }
+}
+package com.ibm.rest.client;
+
+//callee Service
+
+import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+@Path("/hello")
+public class HelloResource {
+
+    @Inject
+    HelloService helloService;
+
+    @GET
+    public Uni<String> hello() {
+        return helloService.hello();
+    }
+}
+........
+
+Caller side:
+
+package org.acme;
+
+import com.ibm.rest.client.restcommunicator.HelloRestClientService;
+import io.smallrye.mutiny.Uni;
+import io.vertx.ext.web.client.WebClientOptions;
+import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.ext.web.client.HttpResponse;
+import io.vertx.mutiny.ext.web.client.WebClient;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
+
+@Path("/greet")
+public class GreetingResource {
+
+    @Inject
+    @RestClient
+    HelloRestClientService helloRestClientService;
+
+    //Grab vertx Runtime Instance
+    @Inject
+    Vertx vertx;
+
+    //WebClient:Object need to be created
+    WebClient webClient;
+
+    @PostConstruct // life cycle annotation
+    public void init() {
+        //create Web Client Object
+        webClient = WebClient.create(vertx, new WebClientOptions()
+                .setDefaultHost("localhost")
+                .setDefaultPort(8080));
+
+    }
+
+    //Rest client
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public Uni<String> hello() {
+        return helloRestClientService.sayHello();
+    }
+
+    @GET
+    @Path("/vertxclient")
+    public Uni<String> sayHello() {
+        return webClient.get("/hello").send().onItem().transform(HttpResponse::bodyAsString);
+    }
+}
+..........................************************.................................
+.....................................................................................
+			  Message Oriented Communication
+.....................................................................................
+			Service Communications via Messages
+			   (Event Driven Microservices)
+				Using vertx Event Bus
+....................................................................................
+
+
+how to build loosly coupled microservices?
+
+
+AKKA - Actor Model Based.
+
+Actor model is architure model which describes how data can be exchanged among programs we call services using "message oriented and event driven".
+
+Vertx inspired akka with respect to message passing techniques, now we can pass messages using vertx  "Event Bus".
+
+Event Bus:
+ -Event bus is object through which we can exchange messages async.
+ -Event bus is just like message broker which in memory message broker
+ -Event bus uses queue to store messages
+ -Event bus communicates via tcp protocal
+ -Event bus can exchange any type of data- including json.
+ -Event can be used to send and receive messages across the system.
+
+Quarkus can Use EventBus for message oriented communication.
+
+
+How consumer and publisher are connectected?
+
+ Via address :Messages are sent on the event bus to an address.
+address should be unique, can follow dns naming model
+
+ ibm.order
+ ibm.order.inventory
+
+
+Types of message Delivery:
+
+1.point to point -  
+  send messages to only one consumer.
+ eventbus.send
+2.Publisher/Subscriber  - pub sub model
+  One publisher many subscribers
+  eventbus.publish
+3.request/reply
+    send messages to only one consumer with ack.
+
+
+Quarkus Event Bus Methods:
+1.send ->Point to Point
+  A message to specific address - One Single Consumer recevies Message
+2.
+
+Dependency:
+ vertx
+     <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-vertx</artifactId>
+    </dependency>
+
+Steps:
+1.Callee(Listener) implementation
+package com.ibm.vertx.event.bus;
+
+import io.quarkus.vertx.ConsumeEvent;
+import jakarta.enterprise.context.ApplicationScoped;
+
+//Listener
+@ApplicationScoped
+public class CustomerService {
+    
+    //listener methods
+    @ConsumeEvent("ibm.customer.service.list")
+    public String findAll(){
+        return  "Customer Service";
+    }
+    
+}
+
+How to publish Message or How to communicate service with Event Bus?
+package com.ibm.vertx.event.bus;
+
+
+import io.smallrye.mutiny.Uni;
+import io.vertx.mutiny.core.eventbus.EventBus;
+import io.vertx.mutiny.core.eventbus.Message;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+
+@Path("customers")
+public class CustomerResource {
+
+    @Inject
+    EventBus eventBus;
+
+    @GET
+    @Path("{id}")
+    public Uni<String> getCustomerInfo(@PathParam("id") String id) {
+        return eventBus.<String>request("ibm.customer.service.list", id).onItem().transform(Message::body);
+    }
+
+}
+
+How to test?
+GET http://localhost:8080/customers/100
+
+Response:
+Customer Service 100
+.................................................................................
+				Fire and Foget -Request and Reply pattern
+..................................................................................
+
+Service:
+package com.ibm.vertx.event.bus;
+
+import io.quarkus.vertx.ConsumeEvent;
+import io.vertx.mutiny.core.eventbus.Message;
+import jakarta.enterprise.context.ApplicationScoped;
+
+//Listener
+@ApplicationScoped
+public class CustomerService {
+
+    @ConsumeEvent("com.ibm.customer.service.greet")
+    public void sayHello(Message<String> message) {
+        System.out.println(message.body());
+        System.out.println(message.address());
+
+    }
+
+}
+
+Resource:
+package com.ibm.vertx.event.bus;
+
+
+import io.smallrye.mutiny.Uni;
+import io.vertx.mutiny.core.eventbus.EventBus;
+import io.vertx.mutiny.core.eventbus.Message;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+
+@Path("customers")
+public class CustomerResource {
+
+    @Inject
+    EventBus eventBus;
+
+    //Fire and Forget
+    @Path("/hello")
+    @GET
+    public String getCustomerInfo2() {
+        EventBus eventBus1 = eventBus.requestAndForget("com.ibm.customer.service.greet", "Hello");
+        return "Processed";
+    }
+
+}
+...................................................................................
+			Pub and Sub Pattern -one Many
+....................................................................................
+
+When you publish message on an address, who ever has that address they will get Messages.
+
+Service:
+package com.ibm.vertx.event.bus;
+
+import io.quarkus.vertx.ConsumeEvent;
+import io.vertx.mutiny.core.eventbus.Message;
+import jakarta.enterprise.context.ApplicationScoped;
+
+//Listener
+@ApplicationScoped
+public class CustomerService {
+
+     //pub- sub - many subscribers or consumers
+
+    @ConsumeEvent("com.ibm.customer.notification")
+    public void notification_1(Message<String> message) {
+        System.out.println("Listener 1");
+        //process the message
+        System.out.println(message.body() + " " + message.address());
+    }
+
+    @ConsumeEvent("com.ibm.customer.notification")
+    public void notification_2(Message<String> message) {
+        System.out.println("Listener 2");
+        System.out.println(message.body() + " " + message.address());
+
+    }
+
+}
+
+Resources:
+package com.ibm.vertx.event.bus;
+
+
+import io.smallrye.mutiny.Uni;
+import io.vertx.mutiny.core.eventbus.EventBus;
+import io.vertx.mutiny.core.eventbus.Message;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+
+@Path("customers")
+public class CustomerResource {
+
+    @Inject
+    EventBus eventBus;
+
+    @GET
+    @Path("/notification")
+    public String notification() {
+        eventBus.publish("com.ibm.customer.notification", "Learn Quarkus");
+        return "Notified";
+    }
+
+}
+.....................................................................................
+			Event Sourcing - Microservice Pattern
+.....................................................................................
+
+
+
+
+

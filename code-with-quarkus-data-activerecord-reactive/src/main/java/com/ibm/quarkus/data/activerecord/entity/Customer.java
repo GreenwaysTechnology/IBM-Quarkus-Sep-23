@@ -5,6 +5,7 @@ import io.quarkus.hibernate.reactive.panache.PanacheEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 
+//Active Record Pattern
 @Entity
 public class Customer extends PanacheEntity {
     @Column

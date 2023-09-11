@@ -1,8 +1,11 @@
 package com.ibm.quarkus.data.activerecord.entity;
 
+import static jakarta.ws.rs.core.Response.Status.CREATED;
+import static jakarta.ws.rs.core.Response.Status.NOT_FOUND;
+import static jakarta.ws.rs.core.Response.Status.NO_CONTENT;
+
 import io.quarkus.hibernate.reactive.panache.Panache;
 import io.smallrye.mutiny.Uni;
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 
@@ -38,29 +41,32 @@ public class CustomerResource {
 
     }
 
+    /**
+     *
+     * Note:
+     * PUT localhost:8080/customers/1
+     * Input:
+     * {
+     *     "id": 1,
+     *     "name": "Subramanian",
+     *     "city": "Chennai"
+     * }
+     */
     @PUT
-    @Path("/{id}")
+    @Path("{id}")
     public Uni<Response> update(Long id, Customer customer) {
-        //Error Handling
         if (customer == null || customer.name == null) {
-            throw new WebApplicationException("CustomerNot Found", 400);
+            throw new WebApplicationException("Customer name was not set on request.", 422);
         }
+        System.out.println(id  + " " +  customer);
         return Panache
-                .withTransaction(() -> Customer.<Customer>findById(id))
-                .onItem()
-                .ifNotNull()
-                .invoke(entity ->
-                        {
-                            entity.city = customer.city;
-                            System.out.println(entity.city + " " + entity.name);
-                        }
+                .withTransaction(() -> Customer.<Customer> findById(id)
+                        .onItem().ifNotNull().invoke(entity -> entity.city = customer.city)
                 )
-                .onItem().ifNotNull().transform(entity -> {
-                    return Response.ok(entity).build();
-                })
-                .onItem().ifNull()
-                .continueWith(Response.ok().status(Response.Status.NOT_FOUND)::build);
+                .onItem().ifNotNull().transform(entity -> Response.ok(entity).build())
+                .onItem().ifNull().continueWith(Response.ok().status(NOT_FOUND)::build);
     }
+
 
     //delete
     @DELETE

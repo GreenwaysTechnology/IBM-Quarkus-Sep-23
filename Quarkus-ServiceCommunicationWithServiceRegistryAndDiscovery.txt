@@ -1,0 +1,244 @@
+			 Service Registry and Discovery
+.....................................................................................
+
+What is Service Registry and Discovery?
+
+   Services typically need to call one another. In a monolithic application, services invoke one another through language-level method or procedure calls. In a traditional distributed system deployment, services run at fixed, well known locations (hosts and ports) and so can easily call one another using HTTP/REST or some RPC mechanism. However, a modern microservice-based application typically runs in a virtualized or containerized environments where the number of instances of a service and their locations changes dynamically.
+
+SmallRye Strok
+  SmallRye Stork 1.3.2 is a service discovery and client-side load-balancing framework.
+
+The essence of distributed systems resides in the interaction between services. In modern architecture, you often have multiple instances of your service to share the load or improve the resilience by redundancy. But, how do you select the best instance of your service? That’s where Stork helps. Stork is going to select the most appropriate instance. It offers:
+
+Extensible service discovery mechanisms
+Built-in support for Consul and Kubernetes
+Customizable client load-balancing strategies
+A programmatic API and a managed approach
+A Quarkus integration, but Stork can be used in any environment 
+
+Service Registry:
+  It is a database which can store all services with serviceName and its location
+
+Service Registry Implmenetations are Apache zookeer,Consul,DNS,Kubernets,Eureka..
+
+Strok is just abstraction(apis) which binds registrys for registration,discovery,load balancing
+
+ Client [Strok][loadBalancer]-----|Consul--
+			
+
+Strok offers lot of Load balancer Algorithim
+
+1.Round Robin
+2.Random
+3.Least Requests
+4.Response Time
+5.Power Of Two Choices
+6.Sticky
+7.Custom Load Balancer
+....................................................................................
+
+Implementation:
+
+->We are going to use "consul" as Service Registery and Discovery Backend.
+
+
+Steps:
+1.Create app:
+quarkus create app code-with-quarkus-stork
+
+2.Dependencies
+ 1.Quarkus App need same RestClient dependency but it should be Reactive
+   quarkus-rest-client-reactive
+  
+ 2.Registry Server - Consul
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-arc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-resteasy-reactive</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-client-reactive-jackson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-client-reactive</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-resteasy-reactive-jackson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-stork</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.smallrye.stork</groupId>
+            <artifactId>stork-service-discovery-consul</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.smallrye.reactive</groupId>
+            <artifactId>smallrye-mutiny-vertx-consul-client</artifactId>
+        </dependency>
+
+...........
+
+Step 1: 
+Callee Service
+package com.ibm.rest.client;
+
+
+import io.smallrye.mutiny.Uni;
+import jakarta.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class HelloService {
+
+    public Uni<String> hello() {
+        return Uni.createFrom().item("Hello Rest Client Service With Stork");
+    }
+}
+package com.ibm.rest.client;
+
+import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+@Path("/hello")
+public class HelloResource {
+
+    @Inject
+    HelloService helloService;
+
+    @GET
+    public Uni<String> hello() {
+        return helloService.hello();
+    }
+}
+............
+
+Rest Client
+
+package com.ibm.rest.client.restcommunicator;
+
+
+import io.smallrye.mutiny.Uni;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+
+@Path("/hello")
+@RegisterRestClient(configKey = "hello-api")
+public interface HelloRestClientService {
+    //CURD OPERATIONS OF CALL Declaration
+    @GET
+    Uni<String> sayHello();
+}
+
+Caller:
+package org.acme;
+
+import com.ibm.rest.client.restcommunicator.HelloRestClientService;
+import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
+
+@Path("/greet")
+public class GreetingResource {
+
+    @Inject
+    @RestClient
+    HelloRestClientService helloRestClientService;
+
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public Uni<String> hello() {
+        return helloRestClientService.sayHello();
+    }
+}
+
+.....
+
+Registry Bean:
+..............
+package com.ibm.service.registry.beans;
+import io.quarkus.runtime.StartupEvent;
+import io.vertx.ext.consul.ConsulClientOptions;
+import io.vertx.ext.consul.ServiceOptions;
+import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.ext.consul.ConsulClient;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+
+
+@ApplicationScoped
+public class BeanRegistration {
+    @ConfigProperty(name = "consul.host")
+    String host;
+    @ConfigProperty(name = "consul.port")
+    int port;
+
+    @ConfigProperty(name = "hello-service-port", defaultValue = "8080")
+    int hello;
+
+    public void init(@Observes StartupEvent ev, Vertx vertx) {
+
+        ConsulClient client = ConsulClient.create(vertx, new ConsulClientOptions()
+                .setHost(host).setPort(port));
+
+        client.registerServiceAndAwait(
+                new ServiceOptions().setPort(hello).setAddress("localhost")
+                        .setName("hello-service").setId("hello"));
+
+    }
+}
+......................
+
+application.properties
+#Consul Server configuration: Consul is stand up as Registry Server
+consul.host=localhost
+consul.port=8500
+
+#Service Configuration
+hello-api/mp-rest/url=stork://hello-service
+hello-api/mp-rest/scope=javax.inject.Singleton
+
+#Registry Server Configuration
+quarkus.stork.hello-service.service-discovery.type=consul
+quarkus.stork.hello-service.service-discovery.consul-host=localhost
+quarkus.stork.hello-service.service-discovery.consul-port=8500
+
+....
+Running:
+
+Steps:
+1.Start Consul Server
+docker run --rm --name consul -p 8500:8500 -p 8501:8501 consul:1.7 agent -dev -ui -client=0.0.0.0 -bind=0.0.0.0 --https-port=8501
+
+2.Start Application
+mvn compile quarkus:dev
+
+Testing:
+Verify the Service Bean Registered inside Registry Server or Not
+
+http://localhost:8500/ui/dc1/services 
+
+Test Service which are working via Registry Server or not.
+http://localhost:8080/greet
+
+
+
+
+
+
+

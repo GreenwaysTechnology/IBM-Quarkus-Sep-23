@@ -1,0 +1,3 @@
+org\acme\kafka\model\Quote.class
+org\acme\kafka\producer\QuotesResource.class
+org\acme\kafka\model\QuoteDeserializer.class

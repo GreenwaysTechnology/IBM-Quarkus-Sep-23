@@ -597,8 +597,280 @@ public class CustomerResource {
 .....................................................................................
 			Event Sourcing - Microservice Pattern
 .....................................................................................
+A service need to send messages to another service.
+   Message oriented Communication
+
+Highly loosly coupled communications,This pattern already there in the monolithic applications for integrating with third party system or inter system communication or 
+long running process.
+
+Implmenetations in Quarkus:
+
+1.SmallRye Reactive Messaging
+  SmallRye Reactive Messaging is a framework for building event-driven, data streaming, and event-sourcing applications using CDI.
+
+ It lets your application interaction using various messaging technologies such as Apache Kafka, AMQP or MQTT. 
+The framework provides a flexible programming model bridging CDI and event-driven.
 
 
+Core Concepts of Reactive Messaging:
+....................................
+
+1.Message
+   It is wrapper which contains "payload(data) + meta data"
+   The App can pusblish message(publisher) and can process message(consumer)
+
+2.Channel
+   It is logical pipeline through which Messages are transmitted.
+
+3.Connector
+   It is a code which connects brokers which is software which has Messages.
+
+Programming Model:
+ Reactive Messaging uses CDI annotations to abstract underlying message brokers
+
+Annotations:
+
+org.eclipse.microprofile.reactive.messaging.Incoming - indicates the consumed channel
+
+org.eclipse.microprofile.reactive.messaging.Outgoing - indicates the populated channel
+
+eg:
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
+
+import javax.enterprise.context.ApplicationScoped;
+
+@ApplicationScoped
+public class MessageProcessingBean {
+
+    @Incoming("consumed-channel")
+    @Outgoing("populated-channel")
+    public Message<String> process(Message<String> in) {
+        // Process the payload
+        String payload = in.getPayload().toUpperCase();
+        // Create a new message from `in` and just update the payload
+        return in.withPayload(payload);
+    }
+}
+..............
+Sample Code Work Flow:
+......................
+
+@Outgoing("source")
+public Multi<String> generate() {
+    return Multi.createFrom().items("Hello", "from", "reactive", "messaging");
+}
+
+@Incoming("source")
+@Outgoing("sink")
+public String process(String in) {
+    return in.toUpperCase();
+}
+
+@Incoming("sink")
+public void consume(String processed) {
+    System.out.println(processed);
+}
+generate --> [ source ] --> process --> [ sink ] --> consume
+
+only @Outgoing are used to generate messages or payloads - Publisher
+
+only @Incoming are used to consume messages or payloads -Consumer
+
+both @Incoming and @Outgoing are used to process messages or payloads; or transform the stream == Creating Messages
+
+....................................................................................
+		SmallRye Reactive Messaging With Apache Kafka
+...................................................................................			
+Req:
+ 1.Quarkus App with necessary dependency
+ 2.Kafka 
+    -Dev 
+	Quarkus offers Kafka as dev service
+      quarkus-smallrye-reactive-messaging-kafka
+    -Production
+
+Application Arch:
+
+ There will be two application
+
+ 1.Producer App which produces messages and stores into Kafka
+ 2.Consumer App which receives messages from the Kafka and process them, transfers to    again producer applications.
+
+pom.xml:
+ 	<dependency>
+         <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-reactive-messaging-kafka</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-resteasy-reactive-jackson</artifactId>
+        </dependency>
+
+Steps:
+1.Producer :
+
+ POST /quotes/request
+    -publish data into Kafka cluster
+ GET /quotes
+    -Consumes From the Kafka cluster after processing.
 
 
+Models:
+package org.acme.kafka.model;
 
+public class Quote {
+
+    public String id;
+    public int price;
+
+    /**
+     * Default constructor required for Jackson serializer
+     */
+    public Quote() { }
+
+    public Quote(String id, int price) {
+        this.id = id;
+        this.price = price;
+    }
+
+    @Override
+    public String toString() {
+        return "Quote{" +
+                "id='" + id + '\'' +
+                ", price=" + price +
+                '}';
+    }
+}
+
+Serialzer: 
+package org.acme.kafka.model;
+
+import io.quarkus.kafka.client.serialization.ObjectMapperDeserializer;
+
+public class QuoteDeserializer extends ObjectMapperDeserializer<Quote> {
+    public QuoteDeserializer() {
+        super(Quote.class);
+    }
+}
+QuoteResource:
+package org.acme.kafka.producer;
+
+import java.util.UUID;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+
+import org.acme.kafka.model.Quote;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
+
+import io.smallrye.mutiny.Multi;
+
+// POST /quotes/request -  send data to the Channel
+// GET  /quotes   -  Consume data from the channel
+@Path("/quotes")
+public class QuotesResource {
+
+    @Channel("quote-requests")
+    Emitter<String> quoteRequestEmitter;
+
+    /**
+     * Endpoint to generate a new quote request id and send it to "quote-requests" Kafka topic using the emitter.
+     */
+    @POST
+    @Path("/request")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String createRequest() {
+        UUID uuid = UUID.randomUUID();
+        quoteRequestEmitter.send(uuid.toString());
+        return uuid.toString();
+    }
+
+    @Channel("quotes")
+    Multi<Quote> quotes;
+
+    /**
+     * Endpoint retrieving the "quotes" Kafka topic and sending the items to a server sent event.
+     */
+    @GET
+    @Produces(MediaType.SERVER_SENT_EVENTS) // denotes that server side events (SSE) will be produced
+    public Multi<Quote> stream() {
+        return quotes.log();
+    }
+}
+
+.....................................................................................
+
+Quote Processor Application:
+
+Model:
+package org.acme.kafka.model;
+
+public class Quote {
+
+    public String id;
+    public int price;
+
+    /**
+     * Default constructor required for Jackson serializer
+     */
+    public Quote() { }
+
+    public Quote(String id, int price) {
+        this.id = id;
+        this.price = price;
+    }
+
+    @Override
+    public String toString() {
+        return "Quote{" +
+                "id='" + id + '\'' +
+                ", price=" + price +
+                '}';
+    }
+}
+
+Resource
+package org.acme.kafka.processor;
+
+import java.util.Random;
+
+import javax.enterprise.context.ApplicationScoped;
+
+import org.acme.kafka.model.Quote;
+import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Outgoing;
+
+import io.smallrye.reactive.messaging.annotations.Blocking;
+
+/**
+ * A bean consuming data from the "quote-requests" Kafka topic (mapped to "requests" channel) and giving out a random quote.
+ * The result is pushed to the "quotes" Kafka topic.
+ */
+@ApplicationScoped
+public class QuotesProcessor {
+
+    private Random random = new Random();
+
+    @Incoming("requests")
+    @Outgoing("quotes")
+    @Blocking
+    public Quote process(String quoteRequest) throws InterruptedException {
+        // simulate some hard working task
+        Thread.sleep(2000);
+        return new Quote(quoteRequest, random.nextInt(100));
+    }
+}
+.....................................................................................
+
+Testing:
+>quarkus-session\kafka-quickstart> mvn -f producer quarkus:dev
+>quarkus-session\kafka-quickstart> mvn -f processor quarkus:dev
+
+http://localhost:8080/quotes.html
+.....................................................................................

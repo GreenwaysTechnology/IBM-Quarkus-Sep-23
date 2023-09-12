@@ -1,0 +1,2 @@
+org\acme\kafka\model\Quote.class
+org\acme\kafka\processor\QuotesProcessor.class

@@ -1,0 +1,144 @@
+			MicroServices Communications
+			       Falut Tolerance
+.....................................................................................
+
+One of the challenges brought by the distributed nature of microservices is that communication with external systems is inherently unreliable.
+
+This increases demand of resiliency of applications.
+
+In order to build more resilient applications, Quarkus provides SmallRye Falut Tolerance which is implemenation "Micro Profile Tolerance Specification".
+
+There are two context with respect to Resilience.
+
+What if application throwing error incase of unreliable conditions?
+  We need to convert errors into meaningfull responses.
+
+MicroProfile Resilience Annotations:
+
+1.@Timeout -fail if the invocation takes too long
+2.@Fallback-provide alternative result in case of a failure
+3.@Retry-retry several times in case of a failure
+4.@CircuitBreaker-prevent invocations if previous invocations failed too often
+5.@Bulkhead: limit concurrent invocations
+
+Steps:
+create Project
+quarkus create app code-with-quarkus-faluttolerance
+
+quarkus extension add 'smallrye-fault-tolerance'
+quarkus ext add resteasy-reactive-jackson       
+
+Timeout:
+
+Caller -----Calling Callee
+
+Callee must return response on Time that means expected caller time
+
+eg: 
+ Caller always expects results within thousand 1000ms, if callee returns beyond 1000ms , callee will throw Exception - "Timeout Exception".
+
+Eg:
+
+import jakarta.enterprise.context.ApplicationScoped;
+
+import java.util.List;
+
+@ApplicationScoped
+public class TimeoutService {
+
+    public List<String> getProducts() throws InterruptedException {
+        Thread.sleep(5000);
+        return List.of("product1", "product2");
+    }
+}
+
+package com.ibm.falut.timeout;
+
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.eclipse.microprofile.faulttolerance.Timeout;
+
+import java.util.List;
+
+@Path("timeout")
+public class TimeoutResource {
+
+    @Inject
+    TimeoutService timeoutService;
+
+    @GET
+    @Timeout(1000)
+    public List<String> getProducts() throws InterruptedException {
+        return timeoutService.getProducts();
+    }
+}
+
+After running this you will get 
+Error id 6e6b5b6b-b20f-47f8-8759-ec83ad7acd69-2, org.eclipse.microprofile.faulttolerance.exceptions.TimeoutException: com.ibm.falut.timeout.TimeoutResource#getProducts timed out
+
+TimeoutException will be thrown by callee to caller.
+
+We need to make resilient.. we have to convert Exception meaningfull response instead of throwing exception...
+
+@Fallback
+   It converts any error into Meaningfull response.
+
+
+
+package com.ibm.falut.timeout;
+
+import jakarta.enterprise.context.ApplicationScoped;
+
+import java.util.List;
+
+@ApplicationScoped
+public class TimeoutService {
+
+    public List<String> getProducts() throws InterruptedException {
+        Thread.sleep(5000);
+        return List.of("product1", "product2");
+    }
+}
+package com.ibm.falut.timeout;
+
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.eclipse.microprofile.faulttolerance.Fallback;
+import org.eclipse.microprofile.faulttolerance.Timeout;
+
+import java.util.List;
+
+@Path("timeout")
+public class TimeoutResource {
+
+    @Inject
+    TimeoutService timeoutService;
+
+    @GET
+    @Timeout(1000)
+    @Fallback(fallbackMethod = "getProductFallback")
+    public List<String> getProducts() throws InterruptedException {
+        return timeoutService.getProducts();
+    }
+
+    //Fallback api
+    public List<String> getProductFallback() {
+        return List.of("Sorry Try afer some time");
+    }
+}
+
+
+GET http://localhost:8080/timeout
+[
+  "Sorry Try afer some time"
+]
+
+
+
+
+
+
+
+

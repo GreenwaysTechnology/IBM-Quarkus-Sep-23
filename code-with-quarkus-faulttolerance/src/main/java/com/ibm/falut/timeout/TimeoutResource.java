@@ -23,6 +23,6 @@ public class TimeoutResource {
 
     //Fallback api
     public List<String> getProductFallback() {
-        return List.of("Sorry Try afer some time");
+        return List.of("Sorry Try after some time");
     }
 }

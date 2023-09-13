@@ -1,0 +1,148 @@
+			 Microserivces- Caching
+			 (Quarkus and Caching)
+....................................................................................
+
+What is caching?
+A cache is hardware or software that is used to store something, usually data, temporarily in a computing environment.
+
+Why caching?
+ Cache will improve application perfomance.
+
+Normal Workflow:
+
+Client---------------->api------datasources
+Client---------------->api------datasources
+Client---------------->api------datasources
+Client---------------->api------datasources
+
+Caching Workflow
+
+Client---------------->api------>datasources
+Client---------------->api<--Cache--|------>datasources
+
+Quarkus and Cache:
+ Quarkus can use no of cache implementations
+
+1.InMemory Memory
+2.Redis as Cache
+3.MemCache 
+etc....
+
+Quarkus Cache:
+  Which provides common annoations
+
+@CacheResult
+ Loads a method result from the cache without executing the method body whenever possible.
+
+@CacheInvalidate
+Removes an entry from the cache.
+When a method annotated with @CacheInvalidate is invoked, Quarkus will compute a cache key and use it to try to remove an existing entry from the cache
+
+@CacheInvalidateAll
+When a method annotated with @CacheInvalidateAll is invoked, Quarkus will remove all entries from the cache.
+
+@CacheKey
+When a method argument is annotated with @CacheKey, it is identified as a part of the cache key during an invocation of a method annotated with @CacheResult or @CacheInvalidate.
+
+This annotation is optional and should only be used when some method arguments are NOT part of the cache key.
+
+Project creation:
+quarkus create app  code-with-quarkus-cache  --extension=cache,resteasy-reactive-jackson  
+
+
+package com.ibm.cache;
+
+import io.quarkus.cache.CacheResult;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+
+import java.util.Date;
+
+@Path("hello")
+public class HelloResouce {
+
+    @GET
+    @CacheResult(cacheName = "message")
+    public String hello() {
+        System.out.println("Called " + new Date());
+        return "Hello";
+    }
+}
+
+REDIS CACHE
+By default, Quarkus Cache uses Caffeine as backend. It’s possible to use Redis instead.
+
+
+Redis as cache backend:
+
+When using Redis as the backend for Quarkus cache, each cached item will be stored in Redis Server.
+
+
+The backend uses the <default> Redis client (if not configured otherwise), so make sure it’s configured (or use the redis dev service)
+
+the Redis key is built as follows: cache:$cache-name:$cache-key, where cache-key is the key the application uses.
+
+Dependencies
+
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-cache</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-redis-cache</artifactId>
+    </dependency>
+
+application.properties
+quarkus.redis.devservices.enabled=true
+quarkus.redis.devservices.image-name=redis/redis-stack-server:latest
+
+package org.acme;
+
+import io.quarkus.cache.CacheInvalidateAll;
+import io.quarkus.cache.CacheResult;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+
+import java.util.Date;
+
+@Path("/hello")
+public class GreetingResource {
+
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    @CacheResult(cacheName = "message")
+    public String hello() {
+        System.out.println("Method called " + new Date());
+        return "Hello from RESTEasy Reactive";
+    }
+    //remove cache through code
+
+    @POST
+    @CacheInvalidateAll(cacheName = "message")
+    public void invalidateAll(){
+
+    }
+}
+
+Testing you can verify the data inside redis server using redis-client via docker
+
+# redis-cli
+127.0.0.1:6379> keys *
+1) "cache:message:default-cache-key"
+127.0.0.1:6379> get cache:message:default-cache-key 
+"Hello"
+127.0.0.1:6379> 
+
+
+
+
+
+
+
+
+
+

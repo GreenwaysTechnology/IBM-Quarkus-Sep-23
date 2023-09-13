@@ -1,0 +1,13 @@
+
+Create CUSTOMER CURD operations
+
+Reactive
+1.REST API
+2.Hibernate- Panche Active Record or DAO Pattern
+3.Service Communications - REST / MOM - EVENT BUS/kafka
+   -Enable Resilience features
+   -Enable Service Discover - Strok
+4.Loggers
+   -Local - console,file
+   -Distributed Logging
+5.Caching

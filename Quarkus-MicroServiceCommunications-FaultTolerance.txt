@@ -134,7 +134,124 @@ GET http://localhost:8080/timeout
 [
   "Sorry Try afer some time"
 ]
+.....................................................................................
+				Retry
+.....................................................................................
 
+Types of Failure and How to handle them?
+
+1.Fail fast
+
+2.Fail safe
+
+1.Fail Fast
+
+Client----->invoke api------>throws Error----Handle Error Instantly.
+
+2.Fail Safe
+
+						  |---1
+Client----->invoke api------>throws Error--Retry--|---2 Recovering chances
+						  |---3
+						  |--->4-> if 4th time is not 					recovred throw Error---Use Fallback 
+
+
+
+
+eg:
+package com.ibm.falut.retry;
+
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.eclipse.microprofile.faulttolerance.Fallback;
+import org.eclipse.microprofile.faulttolerance.Retry;
+
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
+
+@Path("retry")
+public class RetryResource {
+
+    @Inject
+    RetryService retryService;
+
+    private AtomicLong counter = new AtomicLong(0);
+    private float failRatio = 0.5f;
+
+    @GET
+    @Retry(maxRetries = 4, retryOn = RuntimeException.class)
+    @Fallback(fallbackMethod = "fallbackProducts")
+    public List<String> getProducts() throws InterruptedException {
+        final Long invocationNumber = counter.getAndIncrement();
+        maybeFail(String.format("RetryResouce#getProducts invocation %d failed", invocationNumber));
+        return retryService.getProducts();
+    }
+
+    public List<String> fallbackProducts(){
+        return List.of("Fallback Products");
+    }
+
+    private void maybeFail(String failureMessage) {
+        if (new Random().nextFloat() < failRatio) {
+            System.out.println(failureMessage);
+            throw new RuntimeException("Resource failed");
+        }
+    }
+}
+
+Testing:
+http://localhost:8080/retry
+
+You can keep on refreshing the page , once the no of failures are dedecuted it will throw error, when ever error is occured, it will fallback to fallback method.
+.....................................................................................
+			Circuit Breaker
+.....................................................................................
+A circuit breaker is usefull for limiting number of failures happing in the system, when the part of the system becomes temporarily unstable.
+
+The circuit breaker records successful and failed invocations of a method, and when the ratioof failed invocations reaches the specified threshold, the circuit breaker opens and blocks all futher invocations of that method for a given time.
+
+
+package com.ibm.falut.cb;
+
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
+import org.eclipse.microprofile.faulttolerance.Fallback;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+
+@Path("cb")
+public class CircuitBreakerResource {
+
+    @Inject
+    CircuitBreakerService circuitBreakerService;
+
+    private AtomicLong counter = new AtomicLong(0);
+
+    @GET
+    @CircuitBreaker(requestVolumeThreshold = 4)
+    @Fallback(fallbackMethod = "fallback")
+    public List<String> getProdcts() {
+        maybeFail();
+        return circuitBreakerService.getProducts();
+    }
+
+    public List<String> fallback() {
+        return List.of("Fallback Response");
+    }
+    private void maybeFail() {
+        final Long invocationNumber = counter.getAndIncrement();
+        //alernate 2 success and 2 failing invocations
+        if (invocationNumber % 4 > 1) {
+            throw new RuntimeException("Service Failed");
+        }
+    }
+
+}
 
 
 

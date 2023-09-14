@@ -1,0 +1,286 @@
+				Quarkus-App Buildling
+......................................................................................
+
+Quarkus Application Running Mode:
+
+1.Dev Mode
+2.Prod Mode
+
+Dev Mode:
+  How to run quarkus apps in dev
+
+Ways:
+1.  quarkus dev
+2. ./mvnw compile quarkus:dev
+3.  mvn compile quarkus:dev
+
+Prod Mode:
+
+A.JVM Mode
+B.Non JVM / Native Mode
+
+Env:
+  For JVM and NoN JVM 
+ Desktops/Servers- Bare Metal
+ Containers
+ VMs
+ Cloud - VM / Container/Bare Metal
+
+
+JVM Mode:
+
+Steps :
+1.create an app
+
+quarkus create app code-with-quarkus-jvmmode
+
+2.Buildling the App.
+
+2.1.Regular Jar
+   The application code is distributed as separate jar files and its dependencies
+ distributed as a separate file
+2.2.Uber Jar
+  An uber-JAR—also known as a fat JAR or JAR with dependencies—is a JAR file that contains not only a Java program, but embeds its dependencies as well. This means that the JAR functions as an “all-in-one” distribution of the software, without needing any other Java code. (You still need a Java runtime, and an underlying operating system, of course.)
+
+How to build regular jar? and how to deploy?
+
+>mvnw package
+or
+>./mvnw package
+or
+>mvn package
+or
+>quarkus build
+
+How to run/deploy?
+ if you have created regular jar, main app is located inside the folder
+/target/quarkus-app/quarkus-run.jar
+
+java -jar target/quarkus-app/quarkus-run.jar
+__  ____  __  _____   ___  __ ____  ______
+ --/ __ \/ / / / _ | / _ \/ //_/ / / / __/
+ -/ /_/ / /_/ / __ |/ , _/ ,< / /_/ /\ \
+--\___\_\____/_/ |_/_/|_/_/|_|\____/___/
+2023-01-25 14:15:19,231 INFO  [io.quarkus] (main) code-with-quarkus-jvmmode 1.0.0-SNAPSHOT on JVM (powered b
+y Quarkus 2.15.3.Final) started in 1.314s. Listening on: http://0.0.0.0:8080
+2023-01-25 14:15:19,247 INFO  [io.quarkus] (main) Profile prod activated.
+2023-01-25 14:15:19,247 INFO  [io.quarkus] (main) Installed features: [cdi, resteasy-reactive, smallrye-cont
+ext-propagation, vertx]
+
+
+How to build uberjar? How to deploy them?
+
+>./mvnw package -Dquarkus.package.type=uber-jar
+
+uber jar is located inside target/*<ProjectName>-run.jar 
+
+How to deploy uberjar?
+
+java -jar target/code-with-quarkus-jvmmode-1.0.0-SNAPSHOT-runner.jar
+.................................	...................................................................................
+				Native Mode
+...................................................................................
+
+Native mode means without jvm you can run Quarkus Apps(java apps).
+
+Env could be , bar metal desktop/container/vm/cloud..
+
+How to create native apps?
+
+ JavaApps=>.class file(byteCode)===>convert into os binary(linux binary/windows exe).
+
+Technology for creating native apps:
+
+1.GraalVM
+   It is project created by Oracle to build java,js,python,R,WebAssembly into native application.
+
+Are we using GraalVM to convert Quarkus app into native App?
+
+We dont use GrallVM directly, even we can use directly, instead of that red Hat created a down stream project
+
+Mandrel: 
+	A community distribution of GraalVM for the Red Hat build of Quarkus
+https://github.com/graalvm/mandrel.
+.....................................................................................
+
+Building Native Quarkus App:
+
+ You can use GraalVM or Mandrel : Recommendation is Mandrel.
+
+You can create native of quarkus app
+
+ => Directly using Mandrel distribution on linux/windows/mac : Recommended Linux/Mac
+ => if you dont have linux/mac , still you can build native image and you can test
+     "Via Docker"
+
+if you want to build native image
+
+we have two tools
+
+=>Direct tool using linux operating system
+=>Docker tool using windows /linux operating
+
+if you want to run created native image
+=>you can inside bare metal machine -linux
+=>you can inside docker - linux 
+
+
+Lab: Direct - Linux- Mandrel:
+..............................
+Step: 0  : install linux
+
+https://learn.microsoft.com/en-us/windows/wsl/install
+
+
+Step: 1
+ You need linux dependencies
+
+On Fedora/CentOS/RHEL they can be installed with:
+ dnf install glibc-devel zlib-devel gcc freetype-devel libstdc++-static
+
+On Ubuntu-like systems with:
+
+sudo apt install g++ zlib1g-dev libfreetype6-dev
+
+Step 2: 
+  You have to setup GraalVm or Mandrel : Mandrel
+
+https://github.com/graalvm/mandrel/releases
+
+Downlaod
+mandrel-java17-linux-amd64-23.0.1.2-Final.tar.gz
+
+mandrel-java17-23.0.1.2-Final
+
+$ tar -xf mandrel-java17-linux-amd64-22.3.1.0-Final.tar.gz
+$ export JAVA_HOME="$( pwd )/mandrel-java17-23.0.1.2-Final"
+$ export GRAALVM_HOME="${JAVA_HOME}"
+$ export PATH="${JAVA_HOME}/bin:${PATH}"
+
+Project creation:
+
+quarkus create app code-with-quarkus-nativemode
+cd code-with-quarkus-nativemode/
+
+
+$ ./mvnw package -Pnative
+
+$ ./target/code-with-quarkus-nativemode-1.0.0-SNAPSHOT-runner
+
+./target/code-with-quarkus-nativemode-1.0.0-SNAPSHOT-runner
+__  ____  __  _____   ___  __ ____  ______ 
+ --/ __ \/ / / / _ | / _ \/ //_/ / / / __/ 
+ -/ /_/ / /_/ / __ |/ , _/ ,< / /_/ /\ \   
+--\___\_\____/_/ |_/_/|_/_/|_|\____/___/   
+2023-01-25 15:14:36,751 INFO  [io.quarkus] (main) code-with-quarkus-nativemode 1.0.0-SNAPSHOT native (powere
+d by Quarkus 2.15.3.Final) started in 0.456s. Listening on: http://0.0.0.0:8080
+2023-01-25 15:14:36,800 INFO  [io.quarkus] (main) Profile prod activated. 
+2023-01-25 15:14:36,800 INFO  [io.quarkus] (main) Installed features: [cdi, resteasy-reactive, smallrye-cont
+ext-propagation, vertx]
+.....................................................................................
+
+
+Lab: Build Native Image without  Linux operating system
+........................................................
+
+What if i dont have linux operating system still i want to create native image?
+What if i dont have GraalVM or Mandrel setup still i want to create native image?
+
+ Quarkus team provides "docker image through which you build native image".
+
+./mvnw package -Pnative -Dquarkus.native.container-build=true
+
+
+After running this command, the native will be available inside target/code-with-quarkus-nativemode-1.0.0-SNAPSHOT-runner
+
+How to run this?
+ if you have linux , you can directly
+ if you have windows, you have to run again through docker containers.
+  
+  
+Lab: on Linux:
+ 
+./target/code-with-quarkus-nativemode-1.0.0-SNAPSHOT-runner
+
+Lab : on Windows:
+  You need to run via docker.
+.....................................................................................
+			   Quarkus and Docker
+.....................................................................................
+How to dockerzie or how to run quarkus apps in side docker container?
+
+As we discussed already, Quarkus app can be run in two mode
+
+1.JVM Mode
+   =>Bare metal desktop/server - Running directly on operating system
+   =>Inside container=>Running inside docker container
+
+2.Native Mode
+    =>Bare metal desktop/server - Running directly on operating system
+    =>Inside container=>Running inside docker container
+
+
+Docker and JVM mode:
+....................
+
+Qarukus setup provides so many docker files
+
+Dockerfile.jvm:
+  Build app using either regular jar or uber jar run inside JVM mode
+
+Lab:
+Steps:
+1.1.Using Regular jar
+ ./mvnw package   
+1.2.Using fat jar/uber jar
+ ./mvnw package -Dquarkus.package.type=uber-jar
+
+
+2.Build image:
+   you may edit dockerfile based on your distribution, by default which uses regular jar pattern.
+
+docker build -f src/main/docker/Dockerfile.jvm -t quarkus/code-with-quarkus-dockerize-jvm .
+
+> docker images
+quarkus/code-with-quarkus-dockerize-jvm 
+
+How to run?
+docker run -i --rm -p 8080:8080 quarkus/code-with-quarkus-dockerize-jvm
+
+Docker and Native  mode:
+.........................
+
+if you want to create native image
+ =>Direct
+ =>docker
+
+Create native image and execute without any Mandrel or graalvm setup:
+
+Dockerfile.native
+
+./mvnw package -Pnative =>Using platform
+./mvnw package -Pnative -Dquarkus.native.container-build=true =>Using docker
+
+
+Build Image: native
+
+docker build -f src/main/docker/Dockerfile.native -t quarkus/code-with-quarkus-native-dockerize .
+
+Run app/Deploy:
+docker run -i --rm -p 8080:8080 quarkus/code-with-quarkus-native-dockerize
+
+Another native file:
+
+Dockerfile.native-micro
+
+# This Dockerfile is used in order to build a container that runs the Quarkus application in native (no JVM) mode.
+# It uses a micro base image, tuned for Quarkus native executables.
+# It reduces the size of the resulting container image.
+
+docker build -f src/main/docker/Dockerfile.native-micro -t quarkus/code-with-quarkus-dockerize .
+.........................**********................................................
+
+
+
+
+
